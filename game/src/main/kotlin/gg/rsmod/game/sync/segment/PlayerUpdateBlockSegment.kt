@@ -8,6 +8,8 @@ import gg.rsmod.game.sync.SynchronizationSegment
 import gg.rsmod.game.sync.block.UpdateBlockType
 import gg.rsmod.net.packet.DataType
 import gg.rsmod.net.packet.GamePacketBuilder
+import gg.rsmod.util.Misc
+import kotlin.math.max
 
 /**
  * @author Tom <rspsmods@gmail.com>
@@ -43,10 +45,18 @@ class PlayerUpdateBlockSegment(val other: Player, private val newPlayer: Boolean
 
         if (mask >= 0x100) {
             mask = mask or blocks.updateBlockExcessMask
-            buf.put(DataType.BYTE, mask and 0xFF)
+        }
+        if (mask >= 0x10000) {
+            mask = mask or 0x800
+        }
+
+        buf.put(DataType.BYTE, mask and 0xFF)
+
+        if (mask >= 0x100) {
             buf.put(DataType.BYTE, mask shr 8)
-        } else {
-            buf.put(DataType.BYTE, mask and 0xFF)
+        }
+        if (mask >= 0x10000) {
+            buf.put(DataType.BYTE, mask shr 16)
         }
 
         blocks.updateBlockOrder.forEach { blockType ->
@@ -72,7 +82,8 @@ class PlayerUpdateBlockSegment(val other: Player, private val newPlayer: Boolean
 
                 val chatMessage = other.blockBuffer.publicChat
                 val compressed = ByteArray(256)
-                val length = other.world.huffman.compress(chatMessage.text, compressed)
+                //  TODO: re-enable huffman
+                val length = 0;//other.world.huffman.compress(chatMessage.text, compressed)
 
                 buf.put(structure[0].type, structure[0].order, structure[0].transformation, (chatMessage.color.id shl 8) or chatMessage.effect.id)
                 buf.put(structure[1].type, structure[1].order, structure[1].transformation, chatMessage.icon)
@@ -98,6 +109,11 @@ class PlayerUpdateBlockSegment(val other: Player, private val newPlayer: Boolean
                         if (other.blockBuffer.teleport) 127 else if (other.steps?.runDirection != null) 2 else 1)
             }
 
+            UpdateBlockType.MOVEMENT_TYPE -> {
+                val structure = blocks.updateBlocks[blockType]!!.values
+                buf.put(structure[0].type, structure[0].order, structure[0].transformation, if(other.isRunning()) 2 else 1)
+            }
+
             UpdateBlockType.FACE_TILE -> {
                 val structure = blocks.updateBlocks[blockType]!!.values
                 if (forceFace != null) {
@@ -115,87 +131,122 @@ class PlayerUpdateBlockSegment(val other: Player, private val newPlayer: Boolean
 
             UpdateBlockType.APPEARANCE -> {
                 val appBuf = GamePacketBuilder()
-                appBuf.put(DataType.BYTE, other.appearance.gender.id)
+
+                val settings = 0
+                appBuf.put(DataType.BYTE,  settings or other.appearance.gender.id) // flag
+                appBuf.put(DataType.BYTE, 17) // title
                 appBuf.put(DataType.BYTE, other.skullIcon)
                 appBuf.put(DataType.BYTE, other.prayerIcon)
+                appBuf.put(DataType.BYTE, if(other.invisible) 1 else 0) // hidden
 
                 val transmog = other.getTransmogId() >= 0
 
                 if (!transmog) {
-                    val translation = arrayOf(-1, -1, -1, -1, 2, -1, 3, 5, 0, 4, 6, 1)
 
-                    val arms = 6
-                    val hair = 8
-                    val beard = 11
-
-                    for (i in 0 until 12) {
-                        if (i == arms) {
-                            val item = other.equipment[4]
-                            if (item != null) {
-                                if (item.getDef(other.world.definitions).equipType == arms) {
-                                    appBuf.put(DataType.BYTE, 0)
-                                    continue
-                                }
-                            }
-                        } else if (i == hair) {
-                            val item = other.equipment[0]
-                            if (item != null) {
-                                val equipType = item.getDef(other.world.definitions).equipType
-                                if (equipType == hair || equipType == beard) {
-                                    appBuf.put(DataType.BYTE, 0)
-                                    continue
-                                }
-                            }
-                        }
+                    // displays weapon, amulet, cape, and head item
+                    for(i in 0 until 4) {
                         val item = other.equipment[i]
                         if (item != null) {
-                            appBuf.put(DataType.SHORT, 0x200 + item.id)
+                            appBuf.put(DataType.SHORT, 0x8000 + item.getDef(other.world.definitions).appearanceId)
                         } else {
-                            if (translation[i] == -1) {
-                                appBuf.put(DataType.BYTE, 0)
-                            } else {
-                                appBuf.put(DataType.SHORT, 0x100 + other.appearance.looks[translation[i]])
-                            }
+                            appBuf.put(DataType.BYTE, 0)
                         }
                     }
+
+                    // TODO: implement full helmet definitions
+                    // hair
+                    var item = other.equipment[0]
+                    if(item != null) {
+                        appBuf.put(DataType.SHORT, 0x100 + other.appearance.lookupHairStyle(other.world, other.appearance.looks[0]))
+                    } else {
+                        appBuf.put(DataType.SHORT, 0x100 + other.appearance.looks[0])
+                    }
+
+                    // shield
+                    item = other.equipment[5]
+                    if (item != null) {
+                        appBuf.put(DataType.SHORT, 0x8000 + item.getDef(other.world.definitions).appearanceId)
+                    } else {
+                        appBuf.put(DataType.BYTE, 0)
+                    }
+
+                    // chest
+                    item = other.equipment[4]
+                    if(item != null) {
+                        appBuf.put(DataType.SHORT, 0x8000 + item.getDef(other.world.definitions).appearanceId)
+                    } else {
+                        appBuf.put(DataType.SHORT, 0x100 + other.appearance.looks[2])
+                    }
+
+                    // TODO: implement full platebody/body definitions
+                    // arms
+                    if(item != null && item.getDef(other.world.definitions).equipType == 6) {
+                        appBuf.put(DataType.BYTE, 0)
+                    } else {
+                        appBuf.put(DataType.SHORT, 0x100 + other.appearance.looks[3])
+                    }
+
+                    // wrists
+                    item = other.equipment[9]
+                    if (item != null) {
+                        appBuf.put(DataType.SHORT, 0x8000 + item.getDef(other.world.definitions).appearanceId)
+                    } else {
+                        appBuf.put(DataType.SHORT, 0x100 + other.appearance.looks[4])
+                    }
+
+                    // legs
+                    item = other.equipment[7]
+                    if (item != null) {
+                        appBuf.put(DataType.SHORT, 0x8000 + item.getDef(other.world.definitions).appearanceId)
+                    } else {
+                        appBuf.put(DataType.SHORT, 0x100 + other.appearance.looks[5])
+                    }
+
+                    // feet
+                    item = other.equipment[10]
+                    if (item != null) {
+                        appBuf.put(DataType.SHORT, 0x8000 + item.getDef(other.world.definitions).appearanceId)
+                    } else {
+                        appBuf.put(DataType.SHORT, 0x100 + other.appearance.looks[6])
+                    }
+
+                    // TODO: impelement full helmet/mask definitions
+                    // beard
+                    appBuf.put(DataType.SHORT, 0x100 + other.appearance.looks[1])
+
+
                 } else {
                     appBuf.put(DataType.SHORT, 0xFFFF)
                     appBuf.put(DataType.SHORT, other.getTransmogId())
+                    appBuf.put(DataType.BYTE, 0)
                 }
 
-                for (i in 0 until 5) {
-                    val color = Math.max(0, other.appearance.colors[i])
+                // required for a bit hash that'll determine auras, skillcape colors etc
+                appBuf.put(DataType.SHORT, 0)
+
+                for (i in 0..10) {
+                    val color = max(0, other.appearance.colors[i])
                     appBuf.put(DataType.BYTE, color)
                 }
 
-                if (!transmog) {
-                    val animations = intArrayOf(808, 823, 819, 820, 821, 822, 824)
+                if(!transmog) {
+                    appBuf.put(DataType.SHORT, 1426)
+                }
+                appBuf.putString(Misc.formatforDisplay(other.username)!!)
+                appBuf.put(DataType.BYTE, other.combatLevel)
+                appBuf.put(DataType.BYTE, other.combatLevel)
+                appBuf.put(DataType.BYTE, -1)
+                appBuf.put(DataType.BYTE, 0)
 
-                    val weapon = other.equipment[3] // Assume slot 3 is the weapon.
-                    if (weapon != null) {
-                        val def = weapon.getDef(other.world.definitions)
-                        def.renderAnimations?.forEachIndexed { index, anim ->
-                            animations[index] = anim
-                        }
-                    }
-
-                    animations.forEach { anim ->
-                        appBuf.put(DataType.SHORT, anim)
-                    }
-                } else {
+                if(transmog) {
                     val def = other.world.definitions.get(NpcDef::class.java, other.getTransmogId())
                     val animations = arrayOf(def.standAnim, def.walkAnim, def.walkAnim, def.render3,
-                            def.render4, def.render5, def.walkAnim)
+                        def.render4, def.render5, def.walkAnim)
 
                     animations.forEach { anim ->
                         appBuf.put(DataType.SHORT, anim)
                     }
                 }
-
-                appBuf.putString(other.username)
-                appBuf.put(DataType.BYTE, other.combatLevel)
-                appBuf.put(DataType.SHORT, 0)
-                appBuf.put(DataType.BYTE, 0)
 
                 val structure = blocks.updateBlocks[blockType]!!.values
                 buf.put(structure[0].type, structure[0].order, structure[0].transformation, appBuf.byteBuf.readableBytes())
@@ -270,13 +321,17 @@ class PlayerUpdateBlockSegment(val other: Player, private val newPlayer: Boolean
             UpdateBlockType.ANIMATION -> {
                 val structure = blocks.updateBlocks[blockType]!!.values
                 buf.put(structure[0].type, structure[0].order, structure[0].transformation, other.blockBuffer.animation)
-                buf.put(structure[1].type, structure[1].order, structure[1].transformation, other.blockBuffer.animationDelay)
+                buf.put(structure[1].type, structure[1].order, structure[1].transformation, -1)
+                buf.put(structure[2].type, structure[2].order, structure[2].transformation, -1)
+                buf.put(structure[3].type, structure[3].order, structure[3].transformation, -1)
+                buf.put(structure[4].type, structure[4].order, structure[4].transformation, other.blockBuffer.animationDelay)
             }
 
             UpdateBlockType.GFX -> {
                 val structure = blocks.updateBlocks[blockType]!!.values
                 buf.put(structure[0].type, structure[0].order, structure[0].transformation, other.blockBuffer.graphicId)
-                buf.put(structure[1].type, structure[1].order, structure[1].transformation, (other.blockBuffer.graphicHeight shl 16) or other.blockBuffer.graphicDelay)
+                buf.put(structure[1].type, structure[1].order, structure[1].transformation, (other.blockBuffer.graphicDelay and 0xffff) or (other.blockBuffer.graphicHeight shl 16))
+                buf.put(structure[2].type, structure[2].order, structure[2].transformation, other.blockBuffer.graphicRotation and 0x7)
             }
 
             UpdateBlockType.FORCE_MOVEMENT -> {

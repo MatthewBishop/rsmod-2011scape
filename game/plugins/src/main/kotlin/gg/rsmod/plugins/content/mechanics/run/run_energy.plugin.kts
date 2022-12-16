@@ -2,6 +2,8 @@ package gg.rsmod.plugins.content.mechanics.run
 
 on_login {
     player.timers[RunEnergy.RUN_DRAIN] = 1
+    player.sendRunEnergy(player.runEnergy.toInt())
+
 }
 
 on_timer(RunEnergy.RUN_DRAIN) {
@@ -12,13 +14,6 @@ on_timer(RunEnergy.RUN_DRAIN) {
 /**
  * Button by minimap.
  */
-on_button(interfaceId = 160, component = 22) {
-    RunEnergy.toggle(player)
-}
-
-/**
- * Settings button.
- */
-on_button(interfaceId = 261, component = 95) {
+on_button(interfaceId = 750, component = 1) {
     RunEnergy.toggle(player)
 }

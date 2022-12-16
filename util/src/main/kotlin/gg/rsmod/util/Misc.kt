@@ -68,4 +68,30 @@ object Misc {
             return 14
         return if (dx == 2 && dy == 2) 15 else -1
     }
+
+    /**
+     * Formats the string as display name.
+     * @param name The string to format.
+     * @return The formatted name.
+     */
+    fun formatforDisplay(name: String): String? {
+        var name = name
+        name = name.replace("_".toRegex(), " ")
+        name = name.toLowerCase()
+        val newName = StringBuilder()
+        var wasSpace = true
+        for (i in 0 until name.length) {
+            if (wasSpace) {
+                newName.append((String() + name[i]).toUpperCase())
+                wasSpace = false
+            } else {
+                newName.append(name[i])
+            }
+            if (name[i] == ' ') {
+                wasSpace = true
+            }
+        }
+        return newName.toString()
+    }
+
 }

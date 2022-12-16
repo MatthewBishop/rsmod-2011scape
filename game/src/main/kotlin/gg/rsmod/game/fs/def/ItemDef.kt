@@ -1,10 +1,17 @@
 package gg.rsmod.game.fs.def
 
 import gg.rsmod.game.fs.Definition
+import gg.rsmod.game.fs.DefinitionSet
+import gg.rsmod.game.model.priv.Privilege
+import gg.rsmod.game.service.game.ItemMetadataService
+import gg.rsmod.util.ServerProperties
 import gg.rsmod.util.io.BufferUtils.readString
 import io.netty.buffer.ByteBuf
 import it.unimi.dsi.fastutil.bytes.Byte2ByteOpenHashMap
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
+import java.nio.file.Paths
+import java.util.ArrayList
+import java.util.LinkedHashMap
 
 /**
  * @author Tom <rspsmods@gmail.com>
@@ -15,6 +22,8 @@ class ItemDef(override val id: Int) : Definition(id) {
     var stacks = false
     var cost = 0
     var members = false
+    var maleWornModel = -1
+    var maleWornModel2 = -1
     val groundMenu = Array<String?>(5) { null }
     val inventoryMenu = Array<String?>(5) { null }
     val equipmentMenu = Array<String?>(8) { null }
@@ -37,6 +46,12 @@ class ItemDef(override val id: Int) : Definition(id) {
     var placeholderLink = 0
     var placeholderTemplate = 0
 
+    var lendId = -1
+    var lendTemplateId = -1
+
+    var recolourId = -1
+    var recolourTemplateId = -1
+
     val params = Int2ObjectOpenHashMap<Any>()
 
     /**
@@ -48,10 +63,11 @@ class ItemDef(override val id: Int) : Definition(id) {
     var attackSpeed = -1
     var equipSlot = -1
     var equipType = 0
+    var appearanceId = 0
     var weaponType = -1
     var renderAnimations: IntArray? = null
     var skillReqs: Byte2ByteOpenHashMap? = null
-    lateinit var bonuses: IntArray
+    var bonuses = intArrayOf(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
     val stackable: Boolean
         get() = stacks || noteTemplateId > 0
@@ -60,10 +76,11 @@ class ItemDef(override val id: Int) : Definition(id) {
         get() = noteTemplateId > 0
 
     /**
-     * Whether or not the object is a placeholder.
+     * Whether the object is a placeholder.
      */
     val isPlaceholder
         get() = placeholderTemplate > 0 && placeholderLink > 0
+
 
     override fun decode(buf: ByteBuf, opcode: Int) {
         when (opcode) {
@@ -77,15 +94,10 @@ class ItemDef(override val id: Int) : Definition(id) {
             11 -> stacks = true
             12 -> cost = buf.readInt()
             16 -> members = true
-            23 -> {
-                buf.readUnsignedShort()
-                buf.readUnsignedByte()
-            }
+            18 -> buf.readShort()
+            23 -> maleWornModel = buf.readUnsignedShort()
             24 -> buf.readUnsignedShort()
-            25 -> {
-                buf.readUnsignedShort()
-                buf.readUnsignedByte()
-            }
+            25 -> maleWornModel2 = buf.readUnsignedShort()
             26 -> buf.readUnsignedShort()
             in 30 until 35 -> {
                 groundMenu[opcode - 30] = buf.readString()
@@ -98,43 +110,88 @@ class ItemDef(override val id: Int) : Definition(id) {
                 val count = buf.readUnsignedByte()
 
                 for (i in 0 until count) {
-                    buf.readUnsignedShort()
-                    buf.readUnsignedShort()
+                    buf.readShort()
+                    buf.readShort()
                 }
             }
             41 -> {
                 val count = buf.readUnsignedByte()
 
                 for (i in 0 until count) {
-                    buf.readUnsignedShort()
-                    buf.readUnsignedShort()
+                    buf.readShort()
+                    buf.readShort()
                 }
             }
-            42 -> buf.readByte()
+            42 -> {
+                val count = buf.readUnsignedByte()
+
+                for (i in 0 until count) {
+                    buf.readByte()
+                }
+            }
             65 -> grandExchange = true
             78 -> buf.readUnsignedShort()
             79 -> buf.readUnsignedShort()
-            90 -> buf.readUnsignedShort()
-            91 -> buf.readUnsignedShort()
-            92 -> buf.readUnsignedShort()
-            93 -> buf.readUnsignedShort()
-            95 -> buf.readUnsignedShort()
+            90 -> buf.readShort()
+            91 -> buf.readShort()
+            92 -> buf.readShort()
+            93 -> buf.readShort()
+            95 -> buf.readShort()
+            96 -> buf.readByte()
             97 -> noteLinkId = buf.readUnsignedShort()
             98 -> noteTemplateId = buf.readUnsignedShort()
             in 100 until 110 -> {
                 buf.readUnsignedShort()
                 buf.readUnsignedShort()
             }
-            110 -> buf.readUnsignedShort()
-            111 -> buf.readUnsignedShort()
-            112 -> buf.readUnsignedShort()
+            110 -> buf.readShort()
+            111 -> buf.readShort()
+            112 -> buf.readShort()
             113 -> buf.readByte()
             114 -> buf.readByte()
             115 -> teamCape = buf.readUnsignedByte().toInt()
-            139 -> buf.readUnsignedShort()
-            140 -> buf.readUnsignedShort()
-            148 -> placeholderLink = buf.readUnsignedShort()
-            149 -> placeholderTemplate = buf.readUnsignedShort()
+            121 -> lendId = buf.readUnsignedShort() // lendId
+            122 -> lendTemplateId = buf.readUnsignedShort() // lend template
+            124 -> {
+                for(i in 0 until 6) {
+                    buf.readShort()
+                }
+            }
+            125 -> {
+                for(i in 0 until 3) {
+                    buf.readByte()
+                }
+            }
+            126 -> {
+                for(i in 0 until 3) {
+                    buf.readByte()
+                }
+            }
+            127 -> {
+                buf.readByte()
+                buf.readShort()
+            }
+            128 -> {
+                buf.readByte()
+                buf.readShort()
+            }
+            129 -> {
+                buf.readByte()
+                buf.readShort()
+            }
+            130 -> {
+                buf.readByte()
+                buf.readShort()
+            }
+            132 -> {
+                val count = buf.readUnsignedByte()
+                for(i in 0 until count) {
+                    buf.readUnsignedShort()
+                }
+            }
+            134 -> buf.readByte()
+            139 -> recolourId = buf.readUnsignedShort()
+            140 -> recolourTemplateId = buf.readUnsignedShort()
             249 -> {
                 params.putAll(readParams(buf))
 
@@ -143,6 +200,25 @@ class ItemDef(override val id: Int) : Definition(id) {
                     val option = params.get(paramId) as? String ?: continue
                     equipmentMenu[i] = option
                 }
+            }
+        }
+    }
+
+    companion object {
+        fun getSlotText(slot: Int): String {
+            return when (slot) {
+                0 -> "on head"
+                1 -> "on your back"
+                2 -> "on neck"
+                3 -> "as a weapon"
+                4 -> "on body"
+                5 -> "as a shield"
+                7 -> "on legs"
+                9 -> "on hands"
+                10 -> "on feet"
+                12 -> "on ring finger"
+                13 -> "in the quiver"
+                else -> "null"
             }
         }
     }

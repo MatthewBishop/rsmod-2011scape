@@ -66,7 +66,7 @@ class XteaKeyService : Service {
         var totalRegions = 0
         val missingKeys = mutableListOf<Int>()
 
-        val regionIndex = world.filestore.getIndex(IndexType.MAPS)
+        val library = world.filestore
         for (regionId in 0 until maxRegions) {
             val x = regionId shr 8
             val z = regionId and 0xFF
@@ -75,8 +75,8 @@ class XteaKeyService : Service {
              * Check if the region corresponding to the x and z can be
              * found in our cache.
              */
-            regionIndex.findArchiveByName("m${x}_$z") ?: continue
-            regionIndex.findArchiveByName("l${x}_$z") ?: continue
+
+            library.data(IndexType.MAPS.number, "m${x}_$z") ?: continue
 
             /*
              * The region was found in the regionIndex.
@@ -98,8 +98,8 @@ class XteaKeyService : Service {
         world.xteaKeyService = this
 
         val validKeys = totalRegions - missingKeys.size
-        logger.info("Loaded {} / {} ({}%) XTEA keys.", validKeys, totalRegions,
-                String.format("%.2f", (validKeys.toDouble() * 100.0) / totalRegions.toDouble()))
+        logger.info("Loaded {} / {} ({}%) XTEA keys, {} missing.", validKeys, totalRegions,
+                String.format("%.2f", (validKeys.toDouble() * 100.0) / totalRegions.toDouble()), missingKeys.size)
     }
 
     private fun loadSingleFile(path: Path) {
@@ -107,7 +107,7 @@ class XteaKeyService : Service {
         val xteas = Gson().fromJson(reader, Array<XteaFile>::class.java)
         reader.close()
         xteas?.forEach { xtea ->
-            keys[xtea.region] = xtea.keys
+            keys[xtea.mapsquare] = xtea.key
         }
     }
 
@@ -125,7 +125,7 @@ class XteaKeyService : Service {
         }
     }
 
-    private data class XteaFile(val region: Int, val keys: IntArray) {
+    private data class XteaFile(val mapsquare: Int, val key: IntArray) {
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -133,14 +133,14 @@ class XteaKeyService : Service {
 
             other as XteaFile
 
-            if (region != other.region) return false
-            if (!keys.contentEquals(other.keys)) return false
+            if (mapsquare != other.mapsquare) return false
+            if (!key.contentEquals(other.key)) return false
 
             return true
         }
         override fun hashCode(): Int {
-            var result = region
-            result = 31 * result + keys.contentHashCode()
+            var result = mapsquare
+            result = 31 * result + key.contentHashCode()
             return result
         }
     }

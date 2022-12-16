@@ -1,5 +1,6 @@
 package gg.rsmod.game
 
+import com.displee.cache.CacheLibrary
 import com.google.common.base.Stopwatch
 import gg.rsmod.game.model.Tile
 import gg.rsmod.game.model.World
@@ -16,7 +17,6 @@ import io.netty.channel.ChannelOption
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import mu.KLogging
-import net.runelite.cache.fs.Store
 import java.net.InetSocketAddress
 import java.nio.file.Files
 import java.nio.file.Path
@@ -80,10 +80,12 @@ class Server {
         val initialLaunch = Files.deleteIfExists(Paths.get("./first-launch"))
         val gameProperties = ServerProperties()
         val devProperties = ServerProperties()
+
         gameProperties.loadYaml(gameProps.toFile())
         if (devProps != null && Files.exists(devProps)) {
             devProperties.loadYaml(devProps.toFile())
         }
+
         logger.info("Loaded properties for ${gameProperties.get<String>("name")!!}.")
 
         /*
@@ -115,8 +117,7 @@ class Server {
          * Load the file store.
          */
         individualStopwatch.reset().start()
-        world.filestore = Store(filestore.toFile())
-        world.filestore.load()
+        world.filestore = CacheLibrary(filestore.toFile().toString())
         logger.info("Loaded filestore from path {} in {}ms.", filestore, individualStopwatch.elapsed(TimeUnit.MILLISECONDS))
 
         /*
@@ -188,8 +189,8 @@ class Server {
          */
         val rsaService = world.getService(RsaService::class.java)
         val clientChannelInitializer = ClientChannelInitializer(revision = gameContext.revision,
-                rsaExponent = rsaService?.getExponent(), rsaModulus = rsaService?.getModulus(),
-                filestore = world.filestore, world = world)
+            rsaExponent = rsaService?.getExponent(), rsaModulus = rsaService?.getModulus(),
+            filestore = world.filestore, world = world)
 
         bootstrap.group(acceptGroup, ioGroup)
         bootstrap.channel(NioServerSocketChannel::class.java)
@@ -210,6 +211,7 @@ class Server {
 
         System.gc()
 
+
         return world
     }
 
@@ -220,5 +222,5 @@ class Server {
 
     fun getApiSite(): String = apiProperties.getOrDefault("org-site", "rspsmods.com")
 
-    companion object : KLogging()
+    companion object : KLogging() {}
 }

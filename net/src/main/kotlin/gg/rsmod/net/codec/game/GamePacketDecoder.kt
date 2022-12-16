@@ -71,16 +71,17 @@ class GamePacketDecoder(private val random: IsaacRandom?, private val packetMeta
 
     private fun decodePayload(buf: ByteBuf, out: MutableList<Any>) {
         if (buf.readableBytes() >= length) {
-            val payload = buf.readBytes(length)
-            setState(GameDecoderState.OPCODE)
+                val payload = buf.readBytes(length)
+                setState(GameDecoderState.OPCODE)
 
-            /**
-             * If the packet isn't flagged as being a packet we should ignore,
-             * we queue it up for our game to process the packet.
-             */
-            if (!ignore) {
-                out.add(GamePacket(opcode, type, payload))
-            }
+                /**
+                 * If the packet isn't flagged as being a packet we should ignore,
+                 * we queue it up for our game to process the packet.
+                 */
+                if (!ignore) {
+                    out.add(GamePacket(opcode, type, payload))
+                }
+
         }
     }
 

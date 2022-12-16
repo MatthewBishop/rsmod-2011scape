@@ -123,7 +123,7 @@ abstract class KotlinPlugin(private val r: PluginRepository, val world: World, v
     fun create_shop(name: String, currency: ShopCurrency, stockType: StockType = StockType.NORMAL,
                     stockSize: Int = Shop.DEFAULT_STOCK_SIZE, purchasePolicy: PurchasePolicy = PurchasePolicy.BUY_TRADEABLES,
                     init: Shop.() -> Unit) {
-        val shop = Shop(name, stockType, purchasePolicy, currency, arrayOfNulls(stockSize))
+        val shop = Shop(name, stockType, purchasePolicy, currency, arrayOfNulls(stockSize), arrayOfNulls(6))
         r.shops[name] = shop
         init(shop)
     }

@@ -1,12 +1,22 @@
 [
   {
+  "opened": {
+    "hinge": 45207,
+    "extension": 45209
+  },
+  "closed": {
+    "hinge": 45206,
+    "extension": 45208
+  }
+},
+  {
     "opened": {
-      "hinge": 1559,
-      "extension": 1567
+      "hinge": 45211,
+      "extension": 45213
     },
     "closed": {
-      "hinge": 1558,
-      "extension": 1560
+      "hinge": 45210,
+      "extension": 45212
     }
   }
 ]

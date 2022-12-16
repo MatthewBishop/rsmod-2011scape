@@ -1,7 +1,6 @@
 package gg.rsmod.game.protocol
 
 import gg.rsmod.game.model.World
-import gg.rsmod.game.system.FilestoreSystem
 import gg.rsmod.game.system.LoginSystem
 import gg.rsmod.game.system.ServerSystem
 import gg.rsmod.net.codec.handshake.HandshakeMessage
@@ -12,7 +11,6 @@ import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.handler.timeout.ReadTimeoutException
 import io.netty.util.AttributeKey
 import mu.KLogging
-import net.runelite.cache.fs.Store
 
 /**
  * A [ChannelInboundHandlerAdapter] implementation that is responsible for intercepting
@@ -21,7 +19,7 @@ import net.runelite.cache.fs.Store
  * @author Tom <rspsmods@gmail.com>
  */
 @ChannelHandler.Sharable
-class GameHandler(private val filestore: Store, private val world: World) : ChannelInboundHandlerAdapter() {
+class GameHandler(private val world: World) : ChannelInboundHandlerAdapter() {
 
     override fun channelInactive(ctx: ChannelHandlerContext) {
         val session = ctx.channel().attr(SYSTEM_KEY).andRemove
@@ -41,7 +39,6 @@ class GameHandler(private val filestore: Store, private val world: World) : Chan
                  * have been configured to meet the requirements of the handshake.
                  */
                 when (msg.id) {
-                    HandshakeType.FILESTORE.id -> attribute.set(FilestoreSystem(ctx.channel(), filestore))
                     HandshakeType.LOGIN.id -> attribute.set(LoginSystem(ctx.channel(), world))
                 }
             }

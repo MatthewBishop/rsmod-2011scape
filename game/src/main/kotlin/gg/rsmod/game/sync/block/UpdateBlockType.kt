@@ -17,6 +17,8 @@ enum class UpdateBlockType {
 
     FACE_PAWN,
 
+    MOVEMENT_TYPE,
+
     MOVEMENT,
 
     CONTEXT_MENU,

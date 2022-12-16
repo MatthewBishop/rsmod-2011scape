@@ -8,13 +8,9 @@ gradlew
 gradlew.bat
 
 /data/saves/
-/data/rsa/
 /data/xteas/
 
 /plugins/
-
-game.yml
-dev-settings.yml
 
 error.log
 

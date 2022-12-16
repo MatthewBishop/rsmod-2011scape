@@ -11,6 +11,7 @@ class UpdateZonePartialFollowsEncoder : MessageEncoder<UpdateZonePartialFollowsM
     override fun extract(message: UpdateZonePartialFollowsMessage, key: String): Number = when (key) {
         "x" -> message.x
         "z" -> message.z
+        "height" -> message.height
         else -> throw Exception("Unhandled value key.")
     }
 

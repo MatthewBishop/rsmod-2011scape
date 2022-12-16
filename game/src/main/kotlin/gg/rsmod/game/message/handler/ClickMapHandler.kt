@@ -10,6 +10,7 @@ import gg.rsmod.game.model.entity.Client
 import gg.rsmod.game.model.entity.Entity
 import gg.rsmod.game.model.priv.Privilege
 import gg.rsmod.game.model.timer.STUN_TIMER
+import gg.rsmod.game.sync.block.UpdateBlockType
 
 /**
  * @author Tom <rspsmods@gmail.com>
@@ -38,6 +39,7 @@ class ClickMapHandler : MessageHandler<MoveGameClickMessage> {
         } else {
             val stepType = if (message.movementType == 1) MovementQueue.StepType.FORCED_RUN else MovementQueue.StepType.NORMAL
             val noClip = client.attr[NO_CLIP_ATTR] ?: false
+            client.addBlock(UpdateBlockType.MOVEMENT_TYPE)
             client.walkTo(message.x, message.z, stepType, detectCollision = !noClip)
         }
     }

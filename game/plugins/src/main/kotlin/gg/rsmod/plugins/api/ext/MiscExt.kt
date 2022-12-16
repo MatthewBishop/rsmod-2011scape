@@ -8,8 +8,9 @@ import java.text.DecimalFormat
 import java.text.Format
 import java.util.*
 import java.util.concurrent.ThreadLocalRandom
+import kotlin.math.floor
 
-private val RANDOM = ThreadLocalRandom.current()
+val RANDOM = ThreadLocalRandom.current()
 
 fun Number.appendToString(string: String): String = "$this $string" + (if (this != 1) "s" else "")
 
@@ -30,6 +31,9 @@ fun Int.interpolate(minChance: Int, maxChance: Int, minLvl: Int, maxLvl: Int): I
 fun Int.interpolate(minChance: Int, maxChance: Int, minLvl: Int, maxLvl: Int, cap: Int): Boolean =
         RANDOM.nextInt(cap) <= interpolate(minChance, maxChance, minLvl, maxLvl)
 
+fun interpolate(low: Int, high: Int, level: Int): Int {
+    return floor(low * (99 - level) / 98.0 + floor(high * (level - 1) / 98.0) + 1).toInt()
+}
 /**
  * Get time left from a [TimerKey], in minutes.
  *

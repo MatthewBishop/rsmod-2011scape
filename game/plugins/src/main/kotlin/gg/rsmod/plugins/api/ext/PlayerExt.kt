@@ -6,7 +6,6 @@ import gg.rsmod.game.fs.def.VarbitDef
 import gg.rsmod.game.message.impl.*
 import gg.rsmod.game.model.World
 import gg.rsmod.game.model.attr.CURRENT_SHOP_ATTR
-import gg.rsmod.game.model.attr.PROTECT_ITEM_ATTR
 import gg.rsmod.game.model.bits.BitStorage
 import gg.rsmod.game.model.bits.StorageBits
 import gg.rsmod.game.model.container.ContainerStackType
@@ -14,10 +13,11 @@ import gg.rsmod.game.model.container.ItemContainer
 import gg.rsmod.game.model.entity.Player
 import gg.rsmod.game.model.interf.DisplayMode
 import gg.rsmod.game.model.item.Item
+import gg.rsmod.game.model.shop.PurchasePolicy
 import gg.rsmod.game.model.timer.SKULL_ICON_DURATION_TIMER
 import gg.rsmod.game.sync.block.UpdateBlockType
 import gg.rsmod.plugins.api.*
-import gg.rsmod.plugins.service.marketvalue.ItemMarketValueService
+import gg.rsmod.plugins.api.cfg.SkillDialogueOption
 import gg.rsmod.util.BitManipulation
 
 /**
@@ -37,19 +37,63 @@ fun Player.openShop(shop: String) {
     val s = world.getShop(shop)
     if (s != null) {
         attr[CURRENT_SHOP_ATTR] = s
+        setVarp(118, 4) // main stock container id
+        setVarp(1496, 6) // free sample stock container id
+        sendTempVarbit(532, 995) // currency
         shopDirty = true
+        setVarc(199, -1)
+        openInterface(interfaceId = 621, dest = InterfaceDestination.TAB_AREA)
+        openInterface(interfaceId = 620, dest = InterfaceDestination.MAIN_SCREEN)
 
-        openInterface(interfaceId = 300, dest = InterfaceDestination.MAIN_SCREEN)
-        openInterface(interfaceId = 301, dest = InterfaceDestination.INVENTORY)
-        setInterfaceEvents(interfaceId = 300, component = 16, range = 0..s.items.size, setting = 1086)
-        setInterfaceEvents(interfaceId = 301, component = 0, range = 0 until inventory.capacity, setting = 1086)
-        runClientScript(1074, 13, s.name)
+        for (i in 0..40) {
+            setVarc(946 + i, 0) // sets price amount on individual item container
+        }
+        setInterfaceEvents(
+            interfaceId = 620,
+            component = 25,
+            from = 0,
+            to = s.items.filterNotNull().size * 6,
+            setting = 1150
+        )
+        if (s.sampleItems.filterNotNull().isNotEmpty()) {
+            setInterfaceEvents(
+                interfaceId = 620,
+                component = 26,
+                from = 0,
+                to = s.sampleItems.filterNotNull().size * 4,
+                setting = 1150
+            )
+        }
+        setComponentText(interfaceId = 620, component = 20, text = s.name)
+        if(s.purchasePolicy == PurchasePolicy.BUY_TRADEABLES) {
+            setComponentHidden(interfaceId = 620, component = 19, hidden = false)
+        }
     } else {
         World.logger.warn { "Player \"$username\" is unable to open shop \"$shop\" as it does not exist." }
     }
 }
 
-fun Player.message(message: String, type: ChatMessageType = ChatMessageType.CONSOLE, username: String? = null) {
+fun Player.openSkillDialogue(option: SkillDialogueOption = SkillDialogueOption.MAKE, information: String = "...", maxQuantity: Int = -1, items: ArrayList<Int>, displayQuantitySelection: Boolean = false) {
+    openInterface(interfaceId = 905, parent = 752, child = 13)
+    if(displayQuantitySelection) {
+        openInterface(interfaceId = 916, parent = 905, child = 4)
+    }
+    if(displayQuantitySelection && option != SkillDialogueOption.MAKE_SETS || option != SkillDialogueOption.MAKE_CUSTOM) {
+        setInterfaceEvents(interfaceId = 916, component = 8, from = 0, to = 0, setting = -1)
+    }
+    setComponentText(interfaceId = 916, component = 1, text = information)
+    setVarc(754, option.id)
+    for(i in 0..9) {
+        if(i >= items.size) {
+            setVarc(id = if (i >= 6) 1139 + i - 6 else 755 + i, value = -1)
+            continue
+        }
+        setVarc(id = if (i >= 6) 1139 + i - 6 else 755 + i, value = items[i])
+        val name = world.definitions.get(ItemDef::class.java, items[i]).name
+        setVarcString(id = if (i >= 6) 280 + i - 6 else 132 + i, text = name)
+    }
+}
+fun Player.message(message: String, type: ChatMessageType = ChatMessageType.GAME_MESSAGE, username: String? = null) {
     write(MessageGameMessage(type = type.id, message = message, username = username))
 }
 
@@ -79,6 +123,10 @@ fun Player.setInterfaceEvents(interfaceId: Int, component: Int, range: IntRange,
 
 fun Player.setComponentText(interfaceId: Int, component: Int, text: String) {
     write(IfSetTextMessage(interfaceId, component, text))
+}
+
+fun Player.setVarcString(id: Int, text: String) {
+    write(VarcStringMessage(id, text))
 }
 
 fun Player.setComponentHidden(interfaceId: Int, component: Int, hidden: Boolean) {
@@ -112,9 +160,28 @@ fun Player.setComponentAnim(interfaceId: Int, component: Int, anim: Int) {
  * as it holds logic that must be handled for certain [InterfaceDestination]s.
  */
 fun Player.openInterface(interfaceId: Int, dest: InterfaceDestination, fullscreen: Boolean = false) {
-    val displayMode = if (!fullscreen || dest.fullscreenChildId == -1) interfaces.displayMode else DisplayMode.FULLSCREEN
+    val displayMode = if (!fullscreen) interfaces.displayMode else DisplayMode.FULLSCREEN
     val child = getChildId(dest, displayMode)
     val parent = getDisplayComponentId(displayMode)
+    if (displayMode == DisplayMode.FULLSCREEN) {
+        openOverlayInterface(displayMode)
+    }
+    openInterface(parent, child, interfaceId, if (dest.clickThrough) 1 else 0, isModal = dest == InterfaceDestination.MAIN_SCREEN)
+}
+
+/**
+ * Use this method to open an interface id on top of an [InterfaceDestination]. This
+ * method should always be preferred over
+ *
+ * ```
+ * openInterface(parent: Int, child: Int, component: Int, type: Int, isMainComponent: Boolean)
+ * ```
+ *
+ * as it holds logic that must be handled for certain [InterfaceDestination]s.
+ */
+fun Player.openChatboxInterface(interfaceId: Int, child: Int, dest: InterfaceDestination, fullscreen: Boolean = false) {
+    val displayMode = if (!fullscreen) interfaces.displayMode else DisplayMode.FULLSCREEN
+    val parent = dest.interfaceId
     if (displayMode == DisplayMode.FULLSCREEN) {
         openOverlayInterface(displayMode)
     }
@@ -132,7 +199,7 @@ fun Player.openInterface(interfaceId: Int, dest: InterfaceDestination, fullscree
  * as it holds logic that must be handled for certain [InterfaceDestination]s.
  */
 fun Player.openInterface(dest: InterfaceDestination, autoClose: Boolean = false) {
-    val displayMode = if (!autoClose || dest.fullscreenChildId == -1) interfaces.displayMode else DisplayMode.FULLSCREEN
+    val displayMode = if (!autoClose) interfaces.displayMode else DisplayMode.FULLSCREEN
     val child = getChildId(dest, displayMode)
     val parent = getDisplayComponentId(displayMode)
     if (displayMode == DisplayMode.FULLSCREEN) {
@@ -234,24 +301,17 @@ fun Player.openOverlayInterface(displayMode: DisplayMode) {
     }
     val component = getDisplayComponentId(displayMode)
     interfaces.setVisible(parent = getDisplayComponentId(displayMode), child = 0, visible = true)
-    write(IfOpenTopMessage(component))
+    write(IfOpenTopMessage(component, 1))
 }
 
 fun Player.sendItemContainer(key: Int, items: Array<Item?>) {
-    write(UpdateInvFullMessage(containerKey = key, items = items))
+    write(UpdateInvFullMessage(containerKey = key, items = items, keyless = 0))
 }
-
-fun Player.sendItemContainer(interfaceId: Int, component: Int, items: Array<Item?>) {
-    write(UpdateInvFullMessage(interfaceId = interfaceId, component = component, items = items))
-}
-
 fun Player.sendItemContainer(interfaceId: Int, component: Int, key: Int, items: Array<Item?>) {
-    write(UpdateInvFullMessage(interfaceId = interfaceId, component = component, containerKey = key, items = items))
+    write(UpdateInvFullMessage(containerKey = key, items = items, keyless = 0))
 }
 
 fun Player.sendItemContainer(key: Int, container: ItemContainer) = sendItemContainer(key, container.rawItems)
-
-fun Player.sendItemContainer(interfaceId: Int, component: Int, container: ItemContainer) = sendItemContainer(interfaceId, component, container.rawItems)
 
 fun Player.sendItemContainer(interfaceId: Int, component: Int, key: Int, container: ItemContainer) = sendItemContainer(interfaceId, component, key, container.rawItems)
 
@@ -314,8 +374,13 @@ fun Player.getVarbit(id: Int): Int {
 }
 
 fun Player.setVarbit(id: Int, value: Int) {
-    val def = world.definitions.get(VarbitDef::class.java, id)
-    varps.setBit(def.varp, def.startBit, def.endBit, value)
+    val message = if (id in -Byte.MAX_VALUE..Byte.MAX_VALUE) VarbitSmallMessage(id, value) else VarbitLargeMessage(id, value)
+    write(message)
+}
+
+fun Player.setVarc(id: Int, value: Int) {
+    val message = if (id in -Byte.MAX_VALUE..Byte.MAX_VALUE) VarcSmallMessage(id, value) else VarcLargeMessage(id, value)
+    write(message)
 }
 
 /**
@@ -328,6 +393,7 @@ fun Player.sendTempVarbit(id: Int, value: Int) {
     val message = if (state in -Byte.MAX_VALUE..Byte.MAX_VALUE) VarpSmallMessage(def.varp, state) else VarpLargeMessage(def.varp, state)
     write(message)
 }
+
 
 fun Player.toggleVarbit(id: Int) {
     val def = world.definitions.get(VarbitDef::class.java, id)
@@ -419,16 +485,11 @@ fun Player.hasSkullIcon(icon: SkullIcon): Boolean = skullIcon == icon.id
 
 fun Player.isClientResizable(): Boolean = interfaces.displayMode == DisplayMode.RESIZABLE_NORMAL || interfaces.displayMode == DisplayMode.RESIZABLE_LIST
 
-fun Player.inWilderness(): Boolean = getInterfaceAt(InterfaceDestination.PVP_OVERLAY) != -1
+fun Player.inWilderness(): Boolean = false
 
 fun Player.sendWorldMapTile() {
     runClientScript(1749, tile.as30BitInteger)
 }
-
-fun Player.sendCombatLevelText() {
-    setComponentText(593, 3, "Combat Lvl: $combatLevel")
-}
-
 fun Player.sendWeaponComponentInformation() {
     val weapon = getEquipment(EquipmentType.WEAPON)
 
@@ -444,9 +505,10 @@ fun Player.sendWeaponComponentInformation() {
         name = "Unarmed"
         panel = 0
     }
-
-    setComponentText(593, 1, name)
-    setVarbit(357, panel)
+    for(slot in 11..14) {
+        setInterfaceEvents(interfaceId = 884, component = slot, from = -1, to = 0, setting = 0 or slot shr 2)
+    }
+//    setVarbit(357, panel)
 }
 
 fun Player.calculateAndSetCombatLevel(): Boolean {
@@ -466,8 +528,7 @@ fun Player.calculateAndSetCombatLevel(): Boolean {
 
     val changed = combatLevel != old
     if (changed) {
-        runClientScript(389, combatLevel)
-        sendCombatLevelText()
+        //runClientScript(389, combatLevel)
         addBlock(UpdateBlockType.APPEARANCE)
         return true
     }
@@ -476,7 +537,7 @@ fun Player.calculateAndSetCombatLevel(): Boolean {
 }
 
 fun Player.calculateDeathContainers(): DeathContainers {
-    var keepAmount = if (hasSkullIcon(SkullIcon.WHITE)) 0 else 3
+    /*var keepAmount = if (hasSkullIcon(SkullIcon.WHITE)) 0 else 3
     if (attr[PROTECT_ITEM_ATTR] == true) {
         keepAmount++
     }
@@ -504,8 +565,8 @@ fun Player.calculateDeathContainers(): DeathContainers {
             lostContainer.add(item)
         }
     }
-
-    return DeathContainers(kept = keptContainer, lost = lostContainer)
+     */
+    return DeathContainers(kept = ItemContainer(world.definitions, 3, ContainerStackType.NO_STACK), lost = ItemContainer(world.definitions, inventory.capacity + equipment.capacity, ContainerStackType.NORMAL))
 }
 
 // Note: this does not take ground items, that may belong to the player, into

@@ -3,6 +3,9 @@ package gg.rsmod.game.model.shop
 import gg.rsmod.game.model.PlayerUID
 import gg.rsmod.game.model.World
 import gg.rsmod.game.model.attr.CURRENT_SHOP_ATTR
+import gg.rsmod.game.model.container.ItemContainer
+import gg.rsmod.game.model.item.Item
+import it.unimi.dsi.fastutil.objects.ObjectIterator
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
 
 /**
@@ -27,8 +30,10 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
  *
  * @author Tom <rspsmods@gmail.com>
  */
-data class Shop(val name: String, val stockType: StockType, val purchasePolicy: PurchasePolicy,
-                val currency: ShopCurrency, val items: Array<ShopItem?>) {
+data class Shop(
+    val name: String, val stockType: StockType, val purchasePolicy: PurchasePolicy,
+    val currency: ShopCurrency, val items: Array<ShopItem?>, val sampleItems: Array<ShopItem?>
+) {
 
     /**
      * The [gg.rsmod.game.model.entity.Player.uid]s for players who currently have
@@ -52,6 +57,13 @@ data class Shop(val name: String, val stockType: StockType, val purchasePolicy: 
             }
             if (player.attr[CURRENT_SHOP_ATTR] == this) {
                 player.shopDirty = true
+                player.setInterfaceEvents(
+                    interfaceId = 620,
+                    component = 25,
+                    from = 0,
+                    to = this.items.filterNotNull().size * 6,
+                    setting = 1150
+                )
             } else {
                 iterator.remove()
             }
@@ -73,6 +85,25 @@ data class Shop(val name: String, val stockType: StockType, val purchasePolicy: 
                  */
                 if (amount == 0 && item.amount == 0) {
                     items[i] = null
+                } else {
+                    item.currentAmount = amount
+                }
+                refresh = true
+            }
+        }
+
+        for (i in 0 until sampleItems.size) {
+            val item = sampleItems[i] ?: continue
+            if (item.currentAmount != item.amount && currentCycle % item.resupplyCycles == 0) {
+                val amount = if (item.currentAmount > item.amount) Math.max(item.amount, item.currentAmount - item.resupplyAmount)
+                else Math.min(item.amount, item.currentAmount + item.resupplyAmount)
+                /*
+                 * When an item's initial [ShopItem.amount] is 0, it means that
+                 * the item was not initially in the shop, but was added later.
+                 * These items should be removed once they hit a quantity of 0.
+                 */
+                if (amount == 0 && item.amount == 0) {
+                    sampleItems[i] = null
                 } else {
                     item.currentAmount = amount
                 }

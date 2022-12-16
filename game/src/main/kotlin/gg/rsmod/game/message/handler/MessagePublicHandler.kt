@@ -16,7 +16,8 @@ class MessagePublicHandler : MessageHandler<MessagePublicMessage> {
     override fun handle(client: Client, world: World, message: MessagePublicMessage) {
         val decompressed = ByteArray(256)
         val huffman = world.huffman
-        huffman.decompress(message.data, decompressed, message.length)
+        //  TODO: re-enable huffman
+        //huffman.decompress(message.data, decompressed, message.length)
 
         val unpacked = String(decompressed, 0, message.length)
         val type = ChatMessage.ChatType.values.firstOrNull { it.id == message.type } ?: ChatMessage.ChatType.NONE

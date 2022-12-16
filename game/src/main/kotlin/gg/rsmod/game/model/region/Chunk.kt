@@ -190,7 +190,7 @@ class Chunk(val coords: ChunkCoords, val heights: Int) {
                     continue
                 }
                 val local = client.lastKnownRegionBase!!.toLocal(this.coords.toTile())
-                client.write(UpdateZonePartialFollowsMessage(local.x, local.z))
+                client.write(UpdateZonePartialFollowsMessage(local.x shr 3, local.z shr 3, local.height))
                 client.write(update.toMessage())
             }
         }
@@ -214,7 +214,8 @@ class Chunk(val coords: ChunkCoords, val heights: Int) {
 
         if (messages.isNotEmpty()) {
             val local = p.lastKnownRegionBase!!.toLocal(coords.toTile())
-            p.write(UpdateZonePartialEnclosedMessage(local.x, local.z, gameService.messageEncoders, gameService.messageStructures, *messages.toTypedArray()))
+            p.write(UpdateZonePartialFollowsMessage(local.x shr 3, local.z shr 3, local.height))
+           // p.write(UpdateZonePartialEnclosedMessage(local.x, local.z, gameService.messageEncoders, gameService.messageStructures, *messages.toTypedArray()))
         }
     }
 

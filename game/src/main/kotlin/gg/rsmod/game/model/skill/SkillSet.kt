@@ -1,5 +1,10 @@
 package gg.rsmod.game.model.skill
 
+import kotlin.math.floor
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
+
 /**
  * Holds all [Skill] data for a player.
  *
@@ -97,11 +102,11 @@ class SkillSet(val maxSkills: Int) {
             "Cap value and alter value must always be the same signum (+ or -)."
         }
         val altered = when {
-            capValue > 0 -> Math.min(getCurrentLevel(skill) + value, getMaxLevel(skill) + capValue)
-            capValue < 0 -> Math.max(getCurrentLevel(skill) + value, getMaxLevel(skill) + capValue)
-            else -> Math.min(getMaxLevel(skill), getCurrentLevel(skill) + value)
+            capValue > 0 -> min(getCurrentLevel(skill) + value, getMaxLevel(skill) + capValue)
+            capValue < 0 -> max(getCurrentLevel(skill) + value, getMaxLevel(skill) + capValue)
+            else -> min(getMaxLevel(skill), getCurrentLevel(skill) + value)
         }
-        val newLevel = Math.max(0, altered)
+        val newLevel = max(0, altered)
         val curLevel = getCurrentLevel(skill)
 
         if (newLevel != curLevel) {
@@ -166,7 +171,7 @@ class SkillSet(val maxSkills: Int) {
         /**
          * The default amount of trainable skills by players.
          */
-        const val DEFAULT_SKILL_COUNT = 23
+        const val DEFAULT_SKILL_COUNT = 25
 
         /**
          * Gets the level correspondent to the [xp] given.
@@ -191,7 +196,7 @@ class SkillSet(val maxSkills: Int) {
         private val XP_TABLE = IntArray(99).apply {
             var points = 0
             for (level in 1 until size) {
-                points += Math.floor(level + 300 * Math.pow(2.0, level / 7.0)).toInt()
+                points += floor(level + 300 * 2.0.pow(level / 7.0)).toInt()
                 set(level, points / 4)
             }
         }

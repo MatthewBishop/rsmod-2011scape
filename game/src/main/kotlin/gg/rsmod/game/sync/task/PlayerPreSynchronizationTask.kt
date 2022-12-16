@@ -30,7 +30,7 @@ object PlayerPreSynchronizationTask : SynchronizationTask<Player> {
             val instance = pawn.world.instanceAllocator.getMap(current)
             val rebuildMessage = when {
                 instance != null -> RebuildRegionMessage(current.x shr 3, current.z shr 3, 1, instance.getCoordinates(pawn.tile), xteaService)
-                else -> RebuildNormalMessage(current.x shr 3, current.z shr 3, xteaService)
+                else -> RebuildNormalMessage(pawn.mapSize, if(pawn.forceMapRefresh) 1 else 0, current.x shr 3, current.z shr 3, xteaService)
             }
             pawn.write(rebuildMessage)
         }

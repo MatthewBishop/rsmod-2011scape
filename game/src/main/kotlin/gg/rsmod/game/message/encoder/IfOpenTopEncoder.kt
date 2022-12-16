@@ -10,6 +10,7 @@ class IfOpenTopEncoder : MessageEncoder<IfOpenTopMessage>() {
 
     override fun extract(message: IfOpenTopMessage, key: String): Number = when (key) {
         "top" -> message.top
+        "context" -> message.context
         else -> throw Exception("Unhandled value key.")
     }
 

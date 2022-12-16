@@ -1,5 +1,8 @@
 package gg.rsmod.plugins.api.ext
 
+import java.text.NumberFormat
+import java.util.*
+
 /**
  * A map of numbers to English string literals
  */
@@ -50,4 +53,16 @@ fun Int.formatRS2() : String {
         this < 10_000_000 -> "${this / 1_000}K"
         else -> "${this / 1_000_000}M"
     }
+}
+
+/**
+ * Formats a number with commas
+ *
+ * Examples:
+ *
+ * 72000 would return 72,000
+ * 1000000 would return 1,000,000
+ */
+fun Int.format() : String {
+    return NumberFormat.getInstance(Locale.CANADA).format(this)
 }

@@ -31,6 +31,8 @@ object Skills {
     const val RUNECRAFTING = 20
     const val HUNTER = 21
     const val CONSTRUCTION = 22
+    const val SUMMONING = 23
+    const val DUNGEONEERING = 24
 
     const val MIN_COMBAT_LVL = 3
     const val MAX_COMBAT_LVL = 126
@@ -42,7 +44,7 @@ object Skills {
 
     fun isCombat(skill: Int): Boolean = when (skill) {
         ATTACK, DEFENCE, HITPOINTS, STRENGTH,
-        RANGED, PRAYER, MAGIC -> true
+        RANGED, PRAYER, MAGIC, SUMMONING -> true
         else -> false
     }
 

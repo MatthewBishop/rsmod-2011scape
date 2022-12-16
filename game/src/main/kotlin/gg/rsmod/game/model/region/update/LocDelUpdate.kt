@@ -13,5 +13,5 @@ class LocDelUpdate(override val type: EntityUpdateType,
                    override val entity: GameObject) : EntityUpdate<GameObject>(type, entity) {
 
     override fun toMessage(): Message = LocDelMessage(entity.settings.toInt(),
-            ((entity.tile.x and 0x7) shl 4) or (entity.tile.z and 0x7))
+            ((entity.tile.chunkOffsetX) shl 4) or (entity.tile.chunkOffsetZ and 0x7))
 }

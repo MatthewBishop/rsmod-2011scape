@@ -6,7 +6,7 @@ package gg.rsmod.plugins.content.inter.emotes
 enum class Emote(val slot: Int, val anim: Int, val gfx: Int = -1,
                  val varbit: Int = -1, val requiredVarbitValue: Int = 1,
                  val unlockDescription: String? = null) {
-    YES(slot = 0, anim = 855),
+    YES(slot = 2, anim = 855),
     NO(slot = 1, anim = 856),
     BOW(slot = 2, anim = 858),
     ANGRY(slot = 3, anim = 859),
@@ -47,13 +47,7 @@ enum class Emote(val slot: Int, val anim: Int, val gfx: Int = -1,
     STAR_JUMP(slot = 38, anim = 2763, varbit = EmotesTab.EXERCISE_EMOTES),
     JOG(slot = 39, anim = 2763, varbit = EmotesTab.EXERCISE_EMOTES),
     ZOMBIE_HAND(slot = 40, anim = 1708, gfx = 320, varbit = EmotesTab.ZOMBIE_HAND_EMOTE_VARBIT),
-    HYPERMOBILE_DRINKER(slot = 41, anim = 7131, varbit = EmotesTab.HYPERMOBILE_DRINKER_EMOTE_VARBIT),
-    SKILLCAPE(slot = 42, anim = -1),
-    AIR_GUITAR(slot = 43, anim = 4751, gfx = 1239, varbit = EmotesTab.AIR_GUITAR_EMOTE_VARBIT),
-    URI_TRANSFORM(slot = 44, anim = -1, gfx = -1, varbit = EmotesTab.URI_TRANSFORM_EMOTE_VARBIT),
-    SMOOTH_DANCE(slot = 45, anim = 7533, varbit = EmotesTab.SMOOTH_DANCE_EMOTE_VARBIT),
-    CRAZY_DANCE(slot = 46, anim = 7536, varbit = EmotesTab.CRAZY_DANCE_EMOTE_VARBIT),
-    PREMIER_SHIELD(slot = 47, anim = 7751, gfx = 1412, varbit = EmotesTab.PREMIER_SHIELD_EMOTE_VARBIT);
+    SKILLCAPE(slot = 42, anim = -1);
 
     companion object {
         val values = enumValues<Emote>()

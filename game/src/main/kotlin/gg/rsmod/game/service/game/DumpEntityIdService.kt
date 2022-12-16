@@ -49,7 +49,7 @@ class DumpEntityIdService : Service {
         val namer = Namer()
 
         writeItems(definitions, namer)
-        writeNpcs(definitions, namer)
+       // writeNpcs(definitions, namer)
         writeObjs(definitions, namer)
     }
 

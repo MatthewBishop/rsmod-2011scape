@@ -9,6 +9,7 @@ import gg.rsmod.net.codec.login.LoginResultType
 import gg.rsmod.util.io.IsaacRandom
 import io.netty.channel.ChannelFutureListener
 import mu.KLogging
+import kotlin.math.log
 
 /**
  * A worker for the [LoginService] that is responsible for handling the most
@@ -34,12 +35,12 @@ class LoginWorker(private val boss: LoginService, private val verificationServic
                     world.getService(GameService::class.java)?.submitGameThreadJob {
                         val interceptedLoginResult = verificationService.interceptLoginResult(world, client.uid, client.username, client.loginUsername)
                         val loginResult: LoginResultType = interceptedLoginResult ?: if (client.register()) {
-                            LoginResultType.ACCEPTABLE
+                            LoginResultType.LOGGED_IN
                         } else {
                             LoginResultType.COULD_NOT_COMPLETE_LOGIN
                         }
-                        if (loginResult == LoginResultType.ACCEPTABLE) {
-                            client.channel.write(LoginResponse(index = client.index, privilege = client.privilege.id))
+                        if (loginResult == LoginResultType.LOGGED_IN) {
+                            client.channel.write(LoginResponse(index = client.index, privilege = client.privilege.id, result = loginResult))
                             boss.successfulLogin(client, world, encodeRandom, decodeRandom)
                         } else {
                             request.login.channel.writeAndFlush(loginResult).addListener(ChannelFutureListener.CLOSE)

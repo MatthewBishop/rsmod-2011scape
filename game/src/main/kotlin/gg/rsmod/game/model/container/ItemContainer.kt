@@ -337,7 +337,7 @@ class ItemContainer(val definitions: DefinitionSet, val key: ContainerKey) : Ite
      */
     fun add(item: Item, assureFullInsertion: Boolean = true, forceNoStack: Boolean = false, beginSlot: Int = -1): ItemTransaction {
         return add(item = item.id, amount = item.amount, assureFullInsertion = assureFullInsertion,
-                forceNoStack = forceNoStack, beginSlot = beginSlot)
+            forceNoStack = forceNoStack, beginSlot = beginSlot)
     }
 
     /**

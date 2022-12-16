@@ -12,6 +12,8 @@ import io.netty.buffer.Unpooled
 class RebuildNormalEncoder : MessageEncoder<RebuildNormalMessage>() {
 
     override fun extract(message: RebuildNormalMessage, key: String): Number = when (key) {
+        "map_size" -> message.mapSize
+        "force_load" -> message.forceLoad
         "x" -> message.x
         "z" -> message.z
         else -> throw Exception("Unhandled value key.")
@@ -36,8 +38,6 @@ class RebuildNormalEncoder : MessageEncoder<RebuildNormalMessage>() {
                 forceSend = true
             }
 
-            var count = 0
-            buf.writeShort(count) // Client always read as unsigned short
             for (x in lx..rx) {
                 for (z in lz..rz) {
                     if (!forceSend || z != 49 && z != 149 && z != 147 && x != 50 && (x != 49 || z != 47)) {
@@ -46,11 +46,9 @@ class RebuildNormalEncoder : MessageEncoder<RebuildNormalMessage>() {
                         for (xteaKey in keys) {
                             buf.writeInt(xteaKey) // Client always reads as int
                         }
-                        count++
                     }
                 }
             }
-            buf.setShort(0, count)
 
             val xteas = ByteArray(buf.readableBytes())
             buf.readBytes(xteas)

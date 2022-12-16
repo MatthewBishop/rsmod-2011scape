@@ -18,13 +18,17 @@ class IfButtonDHandler : MessageHandler<IfButtonDMessage> {
         val fromItemId = message.srcItem
 
         val toComponentHash = message.dstComponentHash
-        val toSlot = message.dstSlot
+        var toSlot = message.dstSlot
         val toItemId = message.dstItem
 
         val fromInterfaceId = fromComponentHash shr 16
-        val fromComponent = fromComponentHash and 0xFFFF
+        val fromComponent = fromComponentHash - (fromInterfaceId shl 16)
         val toInterfaceId = toComponentHash shr 16
-        val toComponent = toComponentHash and 0xFFFF
+        val toComponent = toComponentHash - (toInterfaceId shl 16)
+
+        if(fromInterfaceId != 762) {
+            toSlot = message.dstSlot - 28
+        }
 
         log(client, "Swap component to component item: src_component=[%d:%d], dst_component=[%d:%d], src_item=%d, dst_item=%d",
                 fromInterfaceId, fromComponent, toInterfaceId, toComponent, fromItemId, toItemId)

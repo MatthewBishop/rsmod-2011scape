@@ -13,7 +13,7 @@ interface ShopCurrency {
     /**
      * Called when a player selects the "value" option a [ShopItem].
      */
-    fun onSellValueMessage(p: Player, shopItem: ShopItem)
+    fun onSellValueMessage(p: Player, shopItem: ShopItem, freeItem: Boolean)
 
     /**
      * Called when a player selects the "value" option on one of their own
@@ -35,6 +35,11 @@ interface ShopCurrency {
      * Called when a player attempts to buy a [ShopItem].
      */
     fun sellToPlayer(p: Player, shop: Shop, slot: Int, amt: Int)
+
+    /**
+     * Called when a player attempts to take a free [ShopItem].
+     */
+    fun giveToPlayer(p: Player, shop: Shop, slot: Int, amt: Int)
 
     /**
      * Called when a player attempts to sell an inventory item to the shop.

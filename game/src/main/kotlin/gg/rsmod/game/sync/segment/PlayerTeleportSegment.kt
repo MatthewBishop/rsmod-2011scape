@@ -28,9 +28,9 @@ class PlayerTeleportSegment(private val other: Player, private val encodeUpdateB
          * The difference from [other]'s last tile as far as [player]'s client is
          * concerned.
          */
-        val diffX = other.tile.x - (other.lastTile?.x ?: 0)
-        val diffZ = other.tile.z - (other.lastTile?.z ?: 0)
-        val diffH = other.tile.height - (other.lastTile?.height ?: 0)
+        var diffX = other.tile.x - (other.lastTile?.x ?: 0)
+        var diffZ = other.tile.z - (other.lastTile?.z ?: 0)
+        var diffH = other.tile.height - (other.lastTile?.height ?: 0)
 
         /*
          * If the move is within a short radius, we want to save some bandwidth.
@@ -44,9 +44,16 @@ class PlayerTeleportSegment(private val other: Player, private val encodeUpdateB
             /*
              * Write the difference in tiles.
              */
-            buf.putBits(2, diffH and 0x3)
-            buf.putBits(5, diffX and 0x1F)
-            buf.putBits(5, diffZ and 0x1F)
+
+            if(diffX < 0) {
+                diffX += 32
+            }
+
+            if(diffZ < 0) {
+                diffZ += 32
+            }
+
+            buf.putBits(12, diffZ + (diffX shl 5) + (diffH shl 10))
         } else {
             /*
              * Signal to the client that the difference in tiles are not within
@@ -56,9 +63,7 @@ class PlayerTeleportSegment(private val other: Player, private val encodeUpdateB
             /*
              * Write the difference in tiles.
              */
-            buf.putBits(2, diffH and 0x3)
-            buf.putBits(14, diffX and 0x3FFF)
-            buf.putBits(14, diffZ and 0x3FFF)
+            buf.putBits(30, (diffZ and 0x3FFF) + (diffX and 0x3FFF shl 14) + (diffH and 0x3 shl 28))
         }
     }
 }

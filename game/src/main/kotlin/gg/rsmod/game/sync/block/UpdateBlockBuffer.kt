@@ -24,6 +24,7 @@ class UpdateBlockBuffer {
     var graphicId = 0
     var graphicHeight = 0
     var graphicDelay = 0
+    var graphicRotation = 0
 
     lateinit var forceMovement: ForcedMovement
 

@@ -26,6 +26,12 @@ class Tile {
 
     val topLeftRegionZ: Int get() = (z shr 3) - 6
 
+    private val localX: Int get() = x - ((x shr 6) shl 6)
+
+    private val localZ: Int get() = z - ((z shr 6) shl 6)
+    val chunkOffsetX: Int get() = localX - ((localX / 8) * 8)
+    val chunkOffsetZ: Int get() = localZ - ((localZ / 8) * 8)
+
     /**
      * Get the region id based on these coordinates.
      */
@@ -43,7 +49,7 @@ class Tile {
      */
     val as30BitInteger: Int get() = (z and 0x3FFF) or ((x and 0x3FFF) shl 14) or ((height and 0x3) shl 28)
 
-    val asTileHashMultiplier: Int get() = (z shr 13) or ((x shr 13) shl 8) or ((height and 0x3) shl 16)
+    val asTileHashMultiplier: Int get() = ((z / 64) and 0xFF) + ((x / 64) shl 8) + ((height and 0x3) shl 16)
 
     private constructor(coordinate: Int) {
         this.coordinate = coordinate

@@ -523,10 +523,7 @@ abstract class Pawn(val world: World) : Entity() {
             var degreesX = (srcX - dstX).toDouble()
             var degreesZ = (srcZ - dstZ).toDouble()
 
-            degreesX += (Math.floor(width / 2.0)) * 32
-            degreesZ += (Math.floor(length / 2.0)) * 32
-
-            blockBuffer.faceDegrees = (Math.atan2(degreesX, degreesZ) * 325.949).toInt() and 0x7ff
+            blockBuffer.faceDegrees = (Math.atan2(degreesX, degreesZ) * 2607.5945876176133).toInt() and 0x3fff
         } else if (entityType.isNpc) {
             val faceX = (face.x shl 1) + 1
             val faceZ = (face.z shl 1) + 1

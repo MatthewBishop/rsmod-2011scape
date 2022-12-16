@@ -53,7 +53,8 @@ class ItemMetadataService : Service {
         for (i in 0 until itemCount) {
             val def = definitions.get(ItemDef::class.java, i)
             val data = items[def.id] ?: continue
-            def.name = data.name
+            // TODO: re-enable this when proper 667 definitions dumped
+
             def.examine = data.examine
             def.tradeable = data.tradeable
             def.weight = data.weight

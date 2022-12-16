@@ -4,6 +4,7 @@ import gg.rsmod.game.model.container.ItemTransaction
 import gg.rsmod.game.model.entity.*
 import gg.rsmod.game.model.item.Item
 import gg.rsmod.game.model.shop.Shop
+import gg.rsmod.game.model.shop.ShopItem
 import java.lang.ref.WeakReference
 
 /**
@@ -192,3 +193,26 @@ val LEVEL_UP_INCREMENT = AttributeKey<Int>()
  * The previous skill XP of the latest level up.
  */
 val LEVEL_UP_OLD_XP = AttributeKey<Double>()
+
+/**
+ * The current skill menu opened
+ */
+val SKILL_MENU = AttributeKey<Int>()
+
+/**
+ * The opcode that was last sent on any interface message.
+ * For example: opcode 64 was sent on an option in an if3 interface.
+ */
+val INTERACTING_OPCODE_ATTR = AttributeKey<Int>()
+
+/**
+ * The last viewed shop item slot
+ * Required for the Item Information buy button
+ */
+val LAST_VIEWED_SHOP_ITEM_SLOT = AttributeKey<Int>()
+
+/**
+ * The last viewed shop item container (free/sold)
+ * Required for the Item Information take button
+ */
+val LAST_VIEWED_SHOP_ITEM_FREE = AttributeKey<Boolean>()

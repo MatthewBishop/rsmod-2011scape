@@ -25,12 +25,7 @@ interface MessageHandler<T : Message> {
     fun log(client: Client, format: String, vararg args: Any) {
         if (client.logPackets) {
             val message = String.format(format, *args)
-            val logService = client.world.getService(LoggerService::class.java, searchSubclasses = true)
-            if (logService != null) {
-                logService.logPacket(client, message)
-            } else {
-                logger.trace(message)
-            }
+            client.world.getService(LoggerService::class.java, searchSubclasses = true)?.logPacket(client, message)
         }
     }
 

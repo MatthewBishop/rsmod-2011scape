@@ -12,5 +12,5 @@ import gg.rsmod.game.model.entity.GroundItem
 class ObjCountUpdate(override val type: EntityUpdateType, override val entity: GroundItem,
                      private val oldAmount: Int, private val newAmount: Int) : EntityUpdate<GroundItem>(type, entity) {
 
-    override fun toMessage(): Message = ObjCountMessage(entity.item, oldAmount, newAmount, ((entity.tile.x and 0x7) shl 4) or (entity.tile.z and 0x7))
+    override fun toMessage(): Message = ObjCountMessage(entity.item, oldAmount, newAmount, ((entity.tile.chunkOffsetX shl 4) or (entity.tile.chunkOffsetZ and 0x7)))
 }

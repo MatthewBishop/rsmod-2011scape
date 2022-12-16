@@ -30,20 +30,12 @@ class HandshakeDecoder(private val revision: Int, private val cacheCrcs: IntArra
         val opcode = buf.readByte().toInt()
         val handshake = HandshakeType.values.firstOrNull { it.id == opcode }
         when (handshake) {
-            HandshakeType.FILESTORE -> {
-                val p = ctx.pipeline()
-                p.addFirst("filestore_encoder", FilestoreEncoder())
-                p.addAfter("handshake_decoder", "filestore_decoder", FilestoreDecoder(revision))
-            }
             HandshakeType.LOGIN -> {
                 val p = ctx.pipeline()
                 val serverSeed = (Math.random() * Long.MAX_VALUE).toLong()
-
                 p.addFirst("login_encoder", LoginEncoder())
                 p.addAfter("handshake_decoder", "login_decoder", LoginDecoder(revision, cacheCrcs, serverSeed, rsaExponent, rsaModulus))
-
                 ctx.writeAndFlush(ctx.alloc().buffer(1).writeByte(0))
-                ctx.writeAndFlush(ctx.alloc().buffer(8).writeLong(serverSeed))
             }
             else -> {
                 /*

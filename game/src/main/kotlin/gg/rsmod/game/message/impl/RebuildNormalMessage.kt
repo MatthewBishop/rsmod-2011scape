@@ -6,4 +6,10 @@ import gg.rsmod.game.service.xtea.XteaKeyService
 /**
  * @author Tom <rspsmods@gmail.com>
  */
-class RebuildNormalMessage(val x: Int, val z: Int, val xteaKeyService: XteaKeyService?) : Message
+class RebuildNormalMessage(
+    val mapSize: Int,
+    val forceLoad: Int,
+    val x: Int,
+    val z: Int,
+    val xteaKeyService: XteaKeyService?
+) : Message

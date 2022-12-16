@@ -45,16 +45,6 @@ class NpcDef(override val id: Int) : Definition(id) {
             }
             2 -> name = buf.readString()
             12 -> size = buf.readUnsignedByte().toInt()
-            13 -> standAnim = buf.readUnsignedShort()
-            14 -> walkAnim = buf.readUnsignedShort()
-            15 -> render3 = buf.readUnsignedShort()
-            16 -> render4 = buf.readUnsignedShort()
-            17 -> {
-                walkAnim = buf.readUnsignedShort()
-                render5 = buf.readUnsignedShort()
-                render6 = buf.readUnsignedShort()
-                render7 = buf.readUnsignedShort()
-            }
             in 30 until 35 -> {
                 options[opcode - 30] = buf.readString()
                 if (options[opcode - 30]?.toLowerCase() == "null") {
@@ -75,7 +65,13 @@ class NpcDef(override val id: Int) : Definition(id) {
                     buf.readUnsignedShort()
                 }
             }
-            60 -> {
+            42 -> {
+                val count = buf.readUnsignedByte()
+                for (i in 0 until count) {
+                    buf.readByte()
+                }
+            }
+            60, 160 -> {
                 val count = buf.readUnsignedByte()
                 for (i in 0 until count) {
                     buf.readUnsignedShort()
@@ -114,8 +110,57 @@ class NpcDef(override val id: Int) : Definition(id) {
                 }
             }
             107 -> interactable = false
-            111 -> pet = true
-            112 -> buf.readUnsignedByte()
+            113 -> {
+                buf.readUnsignedShort()
+                buf.readUnsignedShort()
+            }
+            114 -> {
+                buf.readByte()
+                buf.readByte()
+            }
+            115 -> {
+                buf.readByte()
+                buf.readByte()
+            }
+            119 -> buf.readByte()
+            121 -> {
+                val length = buf.readUnsignedByte().toInt()
+                repeat(length) { count ->
+                    buf.readUnsignedByte()
+                    buf.readByte()
+                    buf.readByte()
+                }
+            }
+            122, 123, 127, 137, 138, 139, 142 -> buf.readUnsignedShort()
+            125, 128, 140, 163, 165, 168 -> buf.readByte()
+            134 -> {
+                buf.readUnsignedShort()
+                buf.readUnsignedShort()
+                buf.readUnsignedShort()
+                buf.readUnsignedShort()
+                buf.readUnsignedByte()
+            }
+            135, 136 -> {
+                buf.readUnsignedByte()
+                buf.readUnsignedShort()
+            }
+            in 150 until 155 -> {
+                options[opcode - 150] = buf.readString()
+                if (options[opcode - 150]?.toLowerCase() == "null") {
+                    options[opcode - 150] = null
+                }
+            }
+            155 -> {
+                buf.readByte()
+                buf.readByte()
+                buf.readByte()
+                buf.readByte()
+            }
+            158, 159, 162 -> {}
+            164 -> {
+                buf.readShort()
+                buf.readShort()
+            }
             249 -> readParams(buf)
         }
     }

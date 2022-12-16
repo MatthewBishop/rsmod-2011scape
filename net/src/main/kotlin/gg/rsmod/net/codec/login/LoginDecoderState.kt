@@ -5,5 +5,6 @@ package gg.rsmod.net.codec.login
  */
 enum class LoginDecoderState {
     HANDSHAKE,
-    HEADER
+    HEADER,
+    SERVER_SEED
 }

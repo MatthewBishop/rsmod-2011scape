@@ -9,6 +9,7 @@ import gg.rsmod.game.message.impl.ClientCheatMessage
 class ClientCheatDecoder : MessageDecoder<ClientCheatMessage>() {
 
     override fun decode(opcode: Int, opcodeIndex: Int, values: HashMap<String, Number>, stringValues: HashMap<String, String>): ClientCheatMessage {
-        return ClientCheatMessage(stringValues["command"]!!)
+        val additionalInformation = values["additional_information"]!!.toShort()
+        return ClientCheatMessage(additionalInformation, stringValues["command"]!!)
     }
 }

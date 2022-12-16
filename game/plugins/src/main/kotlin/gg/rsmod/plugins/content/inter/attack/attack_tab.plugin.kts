@@ -14,33 +14,33 @@ on_login {
 /**
  * Attack style buttons
  */
-on_button(interfaceId = 593, component = 3) {
+on_button(interfaceId = 884, component = 11) {
     player.setVarp(AttackTab.ATTACK_STYLE_VARP, 0)
 }
 
-on_button(interfaceId = 593, component = 7) {
+on_button(interfaceId = 884, component = 12) {
     player.setVarp(AttackTab.ATTACK_STYLE_VARP, 1)
 }
 
-on_button(interfaceId = 593, component = 11) {
+on_button(interfaceId = 884, component = 13) {
     player.setVarp(AttackTab.ATTACK_STYLE_VARP, 2)
 }
 
-on_button(interfaceId = 593, component = 15) {
+on_button(interfaceId = 884, component = 14) {
     player.setVarp(AttackTab.ATTACK_STYLE_VARP, 3)
 }
 
 /**
  * Toggle auto-retaliate button.
  */
-on_button(interfaceId = 593, component = 29) {
+on_button(interfaceId = 884, component = 15) {
     player.toggleVarp(AttackTab.DISABLE_AUTO_RETALIATE_VARP)
 }
 
 /**
  * Toggle special attack.
  */
-on_button(interfaceId = 593, component = 35) {
+on_button(interfaceId = 884, component = 4) {
     player.toggleVarp(AttackTab.SPECIAL_ATTACK_VARP)
 }
 

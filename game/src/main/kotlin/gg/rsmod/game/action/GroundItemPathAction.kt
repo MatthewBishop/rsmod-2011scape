@@ -75,7 +75,7 @@ object GroundItemPathAction {
         if (!p.world.isSpawned(groundItem)) {
             return
         }
-        if (opt == 3) {
+        if (opt == 1) {
             if (!p.world.plugins.canPickupGroundItem(p, groundItem.item)) {
                 return
             }

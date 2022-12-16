@@ -12,6 +12,9 @@ class NpcWalkSegment(private val walkDirection: Int, private val runDirection: I
     override fun encode(buf: GamePacketBuilder) {
         val running = runDirection != -1
         buf.putBits(2, if (running) 2 else 1)
+        if(runDirection != -1) {
+            buf.putBits(1, 1)
+        }
         buf.putBits(3, walkDirection)
         if (running) {
             buf.putBits(3, runDirection)

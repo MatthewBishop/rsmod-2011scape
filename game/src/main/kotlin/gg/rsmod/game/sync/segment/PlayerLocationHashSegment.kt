@@ -11,16 +11,17 @@ class PlayerLocationHashSegment(private val lastHash: Int, private val currHash:
     override fun encode(buf: GamePacketBuilder) {
         val lastX = (lastHash shr 8) and 0xFF
         val lastZ = lastHash and 0xFF
-        val lastH = lastHash shr 16
+        val lastH = (lastHash shr 16) and 0x3
 
         val currX = (currHash shr 8) and 0xFF
         val currZ = currHash and 0xFF
-        val currH = currHash shr 16
+        val currH = (currHash shr 16) and 0x3
 
         val diffX = currX - lastX
         val diffZ = currZ - lastZ
         val diffH = (currH - lastH) and 0x3
 
+        println(lastX)
         if (lastX == currX && lastZ == currZ) {
             // Assume there's only a height difference as we checked
             // that the hashes did not match.

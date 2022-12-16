@@ -2,8 +2,10 @@ package gg.rsmod.game.fs.def
 
 import gg.rsmod.game.fs.Definition
 import gg.rsmod.game.model.entity.GameObject
+import gg.rsmod.util.io.BufferUtils.getSmart
 import gg.rsmod.util.io.BufferUtils.readString
 import io.netty.buffer.ByteBuf
+import java.nio.ByteBuffer
 
 /**
  * @author Tom <rspsmods@gmail.com>
@@ -27,6 +29,7 @@ class ObjectDef(override val id: Int) : Definition(id) {
 
     var examine: String? = null
 
+
     fun getRotatedWidth(obj: GameObject): Int = when {
         (obj.rot and 0x1) == 1 -> length
         else -> width
@@ -39,25 +42,28 @@ class ObjectDef(override val id: Int) : Definition(id) {
 
     override fun decode(buf: ByteBuf, opcode: Int) {
         when (opcode) {
-            1 -> {
+            1, 5 -> {
                 val count = buf.readUnsignedByte()
                 for (i in 0 until count) {
-                    buf.readUnsignedShort() // Model
-                    buf.readUnsignedByte() // Model type
+                    buf.readByte()
+                    val secondCount = buf.readUnsignedByte()
+                    for(i in 0 until secondCount) {
+                        buf.readUnsignedShort()
+                    }
+                }
+                if(opcode == 5) {
+                    skipReadModelIds(buf)
                 }
             }
             2 -> name = buf.readString()
-            5 -> {
-                val count = buf.readUnsignedByte()
-                for (i in 0 until count) {
-                    buf.readUnsignedShort() // Model
-                }
-            }
             14 -> width = buf.readUnsignedByte().toInt()
             15 -> length = buf.readUnsignedByte().toInt()
             17 -> solid = false
             18 -> impenetrable = false
             19 -> interactive = buf.readUnsignedByte().toInt() == 1
+            21 -> {}
+            22 -> {}
+            23 -> {}
             24 -> {
                 animation = buf.readUnsignedShort()
                 if (animation == 65535) {
@@ -88,16 +94,22 @@ class ObjectDef(override val id: Int) : Definition(id) {
                     buf.readUnsignedShort() // Retexture dst
                 }
             }
-            60 -> buf.readUnsignedShort()
+            42 -> {
+                val count = buf.readUnsignedByte()
+                for (i in 0 until count) {
+                    buf.readByte()
+                }
+            }
             62 -> rotated = true
+            64 -> {}
             65 -> buf.readUnsignedShort()
             66 -> buf.readUnsignedShort()
             67 -> buf.readUnsignedShort()
-            68 -> buf.readUnsignedShort()
             69 -> clipMask = buf.readUnsignedByte().toInt()
             70 -> buf.readShort()
             71 -> buf.readShort()
             72 -> buf.readShort()
+            74 -> {}
             73 -> obstructive = true
             75 -> buf.readUnsignedByte()
             77, 92 -> {
@@ -137,8 +149,85 @@ class ObjectDef(override val id: Int) : Definition(id) {
                 }
             }
             81 -> buf.readUnsignedByte()
-            82 -> buf.readUnsignedShort()
+            82 -> {}
+            88 -> {}
+            89 -> {}
+            90 -> {}
+            91 -> {}
+            93 -> buf.readUnsignedShort()
+            94 -> {}
+            95 -> buf.readShort()
+            96 -> {}
+            97 -> {}
+            98 -> {}
+            99 -> {
+                buf.readUnsignedByte()
+                buf.readUnsignedShort()
+            }
+            100 -> {
+                buf.readUnsignedByte()
+                buf.readUnsignedShort()
+            }
+            101 -> buf.readUnsignedByte()
+            102 -> buf.readUnsignedShort()
+            103 -> {}
+            104 -> buf.readUnsignedByte()
+            105 -> {}
+            106 -> {
+                val count = buf.readUnsignedByte()
+                for (i in 0 until count) {
+                    buf.readUnsignedShort()
+                    buf.readUnsignedByte()
+                }
+            }
+            107 -> buf.readUnsignedShort()
+            in 150 until 155 -> {
+                options[opcode - 150] = buf.readString()
+                if (options[opcode - 150]?.toLowerCase() == "null") {
+                    options[opcode - 150] = null
+                }
+            }
+            160 -> {
+                val count = buf.readUnsignedByte()
+                for (i in 0 until count) {
+                    buf.readUnsignedShort()
+                }
+            }
+            162 -> buf.readByte()
+            163 -> {
+                buf.readByte()
+                buf.readByte()
+                buf.readByte()
+                buf.readByte()
+            }
+            164 -> buf.readShort()
+            165 -> buf.readShort()
+            166 -> buf.readShort()
+            167 -> buf.readUnsignedShort()
+            168 -> {}
+            169 -> {}
+            170 -> getSmart(buf)
+            171 -> getSmart(buf)
+            173 -> {
+                buf.readUnsignedShort()
+                buf.readUnsignedShort()
+            }
+            177 -> {}
+            178 -> buf.readUnsignedByte()
+            189 -> {}
             249 -> readParams(buf)
         }
     }
+
+    private fun skipReadModelIds(buf: ByteBuf) {
+        val length = buf.readByte().toInt() and 0xFF
+        for (index in 0 until length) {
+            buf.readByte()
+            val length2 = buf.readByte().toInt() and 0xFF
+            for (i in 0 until length2) {
+                buf.readShort()
+            }
+        }
+    }
+
 }

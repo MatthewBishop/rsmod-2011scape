@@ -14,6 +14,7 @@ import gg.rsmod.game.model.container.key.BANK_KEY
 import gg.rsmod.game.model.container.key.ContainerKey
 import gg.rsmod.game.model.container.key.EQUIPMENT_KEY
 import gg.rsmod.game.model.container.key.INVENTORY_KEY
+import gg.rsmod.game.model.interf.DisplayMode
 import gg.rsmod.game.model.interf.InterfaceSet
 import gg.rsmod.game.model.interf.listener.PlayerInterfaceListener
 import gg.rsmod.game.model.item.Item
@@ -95,6 +96,18 @@ open class Player(world: World) : Pawn(world) {
     val bank = ItemContainer(world.definitions, BANK_KEY)
 
     /**
+     * A flag which indicates if the map should be force
+     * refreshed
+     */
+    var forceMapRefresh = false
+
+    /**
+     * The size of the map, used as an array index
+     * e.g, sizes are { 104, 120, 136, 168 }
+     */
+    var mapSize = 0
+
+    /**
      * A map that contains all the [ItemContainer]s a player can have.
      */
     val containers = HashMap<ContainerKey, ItemContainer>().apply {
@@ -102,6 +115,11 @@ open class Player(world: World) : Pawn(world) {
         put(EQUIPMENT_KEY, equipment)
         put(BANK_KEY, bank)
     }
+
+    /**
+     * If the client is in resizeable mode
+     */
+    var resizableClient = false
 
     val interfaces by lazy { InterfaceSet(PlayerInterfaceListener(this, world.plugins)) }
 
@@ -219,8 +237,10 @@ open class Player(world: World) : Pawn(world) {
     }
 
     override fun addBlock(block: UpdateBlockType) {
-        val bits = world.playerUpdateBlocks.updateBlocks[block]!!
-        blockBuffer.addBit(bits.bit)
+        if(world.playerUpdateBlocks.updateBlocks[block] != null) {
+            val bits = world.playerUpdateBlocks.updateBlocks[block]!!
+            blockBuffer.addBit(bits.bit)
+        }
     }
 
     override fun hasBlock(block: UpdateBlockType): Boolean {
@@ -298,7 +318,9 @@ open class Player(world: World) : Pawn(world) {
         }
 
         if (inventory.dirty) {
-            write(UpdateInvFullMessage(interfaceId = 149, component = 0, containerKey = 93, items = inventory.rawItems))
+            write(UpdateInvFullMessage(containerKey = 93, items = inventory.rawItems))
+            setInterfaceEvents(679, 0, 0, 27, 0x457D8E)
+            setInterfaceEvents(679, 0, 28, 55, 0x200000)
             inventory.dirty = false
             calculateWeight = true
         }
@@ -308,18 +330,20 @@ open class Player(world: World) : Pawn(world) {
             equipment.dirty = false
             calculateWeight = true
             calculateBonuses = true
-
             addBlock(UpdateBlockType.APPEARANCE)
         }
 
         if (bank.dirty) {
             write(UpdateInvFullMessage(containerKey = 95, items = bank.rawItems))
+            bank.shift()
             bank.dirty = false
         }
 
         if (shopDirty) {
+
             attr[CURRENT_SHOP_ATTR]?.let { shop ->
-                write(UpdateInvFullMessage(containerKey = 13, items = shop.items.map { if (it != null) Item(it.item, it.currentAmount) else null }.toTypedArray()))
+                write(UpdateInvFullMessage(containerKey = 4, items = shop.items.map { if (it != null) Item(it.item, it.currentAmount) else null }.toTypedArray()))
+                write(UpdateInvFullMessage(containerKey = 6, items = shop.sampleItems.map { if (it != null) Item(it.item, it.currentAmount) else null }.toTypedArray()))
             }
             shopDirty = false
         }
@@ -353,6 +377,12 @@ open class Player(world: World) : Pawn(world) {
         for (i in 0 until getSkills().maxSkills) {
             if (getSkills().isDirty(i)) {
                 write(UpdateStatMessage(skill = i, level = getSkills().getCurrentLevel(i), xp = getSkills().getCurrentXp(i).toInt()))
+                if(i == 3) {
+                    setVarbit(7198, getSkills().getCurrentLevel(i) * 10)
+                }
+                if(i == 5) {
+                    setVarbit(9816, getSkills().getCurrentLevel(i) * 10)
+                }
                 getSkills().clean(i)
             }
         }
@@ -396,7 +426,7 @@ open class Player(world: World) : Pawn(world) {
             val tiles = IntArray(gpiTileHashMultipliers.size)
             System.arraycopy(gpiTileHashMultipliers, 0, tiles, 0, tiles.size)
 
-            write(RebuildLoginMessage(index, tile, tiles, world.xteaKeyService))
+            write(RebuildLoginMessage(mapSize, if(forceMapRefresh) 1 else 0, index, tile, tiles, world.xteaKeyService))
             world.getService(LoggerService::class.java, searchSubclasses = true)?.logLogin(this)
         }
 
@@ -405,6 +435,7 @@ open class Player(world: World) : Pawn(world) {
         }
 
         initiated = true
+        interfaces.displayMode = if(resizableClient) DisplayMode.RESIZABLE_NORMAL else DisplayMode.FIXED
         world.plugins.executeLogin(this)
     }
 
@@ -444,8 +475,17 @@ open class Player(world: World) : Pawn(world) {
         for (i in 0 until equipment.capacity) {
             val item = equipment[i] ?: continue
             val def = item.getDef(world.definitions)
-            def.bonuses.forEachIndexed { index, bonus -> equipmentBonuses[index] += bonus }
+//            def.bonuses.forEachIndexed { index, bonus -> equipmentBonuses[index] += bonus }
         }
+    }
+
+    fun setInterfaceEvents(interfaceId: Int, component: Int, from: Int, to: Int, setting: Int = 0) {
+        write(IfSetEventsMessage(hash = ((interfaceId shl 16) or component), fromChild = from, toChild = to, setting = setting))
+    }
+
+    fun setVarbit(id: Int, value: Int) {
+        val message = if (id in -Byte.MAX_VALUE..Byte.MAX_VALUE) VarbitSmallMessage(id, value) else VarbitLargeMessage(id, value)
+        write(message)
     }
 
     fun addXp(skill: Int, xp: Double) {
@@ -541,7 +581,7 @@ open class Player(world: World) : Pawn(world) {
      * Write a [MessageGameMessage] to the client.
      */
     internal fun writeMessage(message: String) {
-        write(MessageGameMessage(type = 0, message = message, username = null))
+       write(MessageGameMessage(type = 0, message = message, username = null))
     }
 
     override fun toString(): String = MoreObjects.toStringHelper(this)

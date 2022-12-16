@@ -1,5 +1,6 @@
 package gg.rsmod.game.protocol
 
+import com.displee.cache.CacheLibrary
 import gg.rsmod.game.model.World
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.socket.SocketChannel
@@ -16,7 +17,7 @@ import java.util.concurrent.Executors
  * @author Tom <rspsmods@gmail.com>
  */
 class ClientChannelInitializer(private val revision: Int, private val rsaExponent: BigInteger?, private val rsaModulus: BigInteger?,
-                               private val filestore: Store, world: World) : ChannelInitializer<SocketChannel>() {
+                               private val filestore: CacheLibrary, world: World) : ChannelInitializer<SocketChannel>() {
 
     /**
      * A global traffic handler that limits the amount of bandwidth all channels
@@ -28,11 +29,11 @@ class ClientChannelInitializer(private val revision: Int, private val rsaExponen
      * The [io.netty.channel.ChannelHandler.Sharable] channel inbound adapter that
      * handles the messages sent and received from [SocketChannel]s.
      */
-    private val handler = GameHandler(filestore, world)
+    private val handler = GameHandler(world)
 
     override fun initChannel(ch: SocketChannel) {
         val p = ch.pipeline()
-        val crcs = filestore.indexes.map { it.crc }.toIntArray()
+        val crcs = filestore.indices().map { it.crc }.toIntArray()
 
         p.addLast("global_traffic", globalTrafficHandler)
         p.addLast("channel_traffic", ChannelTrafficShapingHandler(0, 1024 * 5, 1000))

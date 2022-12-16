@@ -1,5 +1,6 @@
 package gg.rsmod.game.model
 
+import com.displee.cache.CacheLibrary
 import com.google.common.base.Stopwatch
 import gg.rsmod.game.DevContext
 import gg.rsmod.game.GameContext
@@ -56,7 +57,7 @@ class World(val gameContext: GameContext, val devContext: DevContext) {
     /**
      * The [Store] is responsible for handling the data in our cache.
      */
-    lateinit var filestore: Store
+    lateinit var filestore: CacheLibrary
 
     /**
      * The [DefinitionSet] that holds general filestore data.
@@ -67,10 +68,11 @@ class World(val gameContext: GameContext, val devContext: DevContext) {
      * The [HuffmanCodec] used to compress and decompress public chat messages.
      */
     val huffman by lazy {
-        val binary = filestore.getIndex(IndexType.BINARY)!!
-        val archive = binary.findArchiveByName("huffman")!!
-        val file = archive.getFiles(filestore.storage.loadArchive(archive)!!).files[0]
-        HuffmanCodec(file.contents)
+        // TODO: re-enable huffman
+        //val binary = filestore.getIndex(IndexType.BINARY)!!
+        //val archive = binary.findArchiveByName("huffman")!!
+        //val file = archive.getFiles(filestore.storage.loadArchive(archive)!!).files[0]
+        //HuffmanCodec(file.contents)
     }
 
     /**
@@ -217,6 +219,37 @@ class World(val gameContext: GameContext, val devContext: DevContext) {
      */
     internal fun postLoad() {
         plugins.executeWorldInit(this)
+        generateEquipmentIds()
+    }
+
+    /**
+     * Generates the equipment identification number
+     * that the client uses in order to display the equipment
+     * on the appearance block.
+     *
+     * TODO: figure out a better way to generate and store these
+     */
+    private fun generateEquipmentIds() {
+        var equipId = 0
+        for(i in 0..22319) {
+            val itemDef = definitions.get(ItemDef::class.java, i)
+
+            if (itemDef.lendTemplateId != -1) {
+                val referenceDef = definitions.get(ItemDef::class.java, itemDef.lendId)
+                itemDef.maleWornModel = referenceDef.maleWornModel
+                itemDef.maleWornModel2 = referenceDef.maleWornModel2
+            }
+
+            if (itemDef.recolourTemplateId != -1) {
+                val referenceDef = definitions.get(ItemDef::class.java, itemDef.recolourId)
+                itemDef.maleWornModel = referenceDef.maleWornModel
+                itemDef.maleWornModel2 = referenceDef.maleWornModel2
+            }
+
+            if (itemDef.maleWornModel >= 0 || itemDef.maleWornModel2 >= 0) {
+                itemDef.appearanceId = equipId++
+            }
+        }
     }
 
     /**

@@ -10,6 +10,7 @@ class MessageGameEncoder : MessageEncoder<MessageGameMessage>() {
 
     override fun extract(message: MessageGameMessage, key: String): Number = when (key) {
         "type" -> message.type
+        "empty_int" -> 0
         "check_ignore" -> if (message.username != null) 1 else 0
         else -> throw Exception("Unhandled value key.")
     }

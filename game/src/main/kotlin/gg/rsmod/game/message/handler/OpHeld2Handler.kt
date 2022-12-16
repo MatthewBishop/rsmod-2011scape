@@ -4,9 +4,7 @@ import gg.rsmod.game.action.EquipAction
 import gg.rsmod.game.message.MessageHandler
 import gg.rsmod.game.message.impl.OpHeld2Message
 import gg.rsmod.game.model.World
-import gg.rsmod.game.model.attr.INTERACTING_ITEM
-import gg.rsmod.game.model.attr.INTERACTING_ITEM_ID
-import gg.rsmod.game.model.attr.INTERACTING_ITEM_SLOT
+import gg.rsmod.game.model.attr.*
 import gg.rsmod.game.model.entity.Client
 import java.lang.ref.WeakReference
 
@@ -27,6 +25,15 @@ class OpHeld2Handler : MessageHandler<OpHeld2Message> {
 
         if (!client.lock.canItemInteract()) {
             return
+        }
+
+        if(interfaceId == 763) {
+            client.attr[INTERACTING_OPT_ATTR] = 2
+            client.attr[INTERACTING_ITEM_ID] = message.item
+            client.attr[INTERACTING_SLOT_ATTR] = message.slot
+            if (world.plugins.executeButton(client, interfaceId, component)) {
+                return
+            }
         }
 
         val item = client.inventory[message.slot] ?: return

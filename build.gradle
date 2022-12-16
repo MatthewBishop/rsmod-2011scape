@@ -40,6 +40,8 @@ allprojects {
         implementation "io.netty:netty-all:$nettyVersion"
 
         testCompile "org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion"
+
+        implementation "com.displee:rs-cache-library:6.8"
     }
 
     idea {

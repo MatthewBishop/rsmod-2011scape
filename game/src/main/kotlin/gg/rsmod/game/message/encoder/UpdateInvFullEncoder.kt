@@ -5,6 +5,7 @@ import gg.rsmod.game.message.impl.UpdateInvFullMessage
 import gg.rsmod.net.packet.DataOrder
 import gg.rsmod.net.packet.DataType
 import gg.rsmod.net.packet.GamePacketBuilder
+import kotlin.math.min
 
 /**
  * @author Tom <rspsmods@gmail.com>
@@ -12,8 +13,8 @@ import gg.rsmod.net.packet.GamePacketBuilder
 class UpdateInvFullEncoder : MessageEncoder<UpdateInvFullMessage>() {
 
     override fun extract(message: UpdateInvFullMessage, key: String): Number = when (key) {
-        "component_hash" -> message.componentHash
         "container_key" -> message.containerKey
+        "keyless" -> message.keyless
         "item_count" -> message.items.size
         else -> throw Exception("Unhandled value key.")
     }
@@ -29,14 +30,14 @@ class UpdateInvFullEncoder : MessageEncoder<UpdateInvFullMessage>() {
             val buf = GamePacketBuilder()
             message.items.forEach { item ->
                 if (item != null) {
-                    buf.put(DataType.SHORT, item.id + 1)
-                    buf.put(DataType.BYTE, Math.min(255, item.amount))
+                    buf.put(DataType.BYTE, min(item.amount, 255))
                     if (item.amount >= 255) {
-                        buf.put(DataType.INT, DataOrder.INVERSED_MIDDLE, item.amount)
+                        buf.put(DataType.INT, item.amount)
                     }
+                    buf.put(DataType.SHORT, DataOrder.LITTLE,item.id + 1)
                 } else {
-                    buf.put(DataType.SHORT, 0)
                     buf.put(DataType.BYTE, 0)
+                    buf.put(DataType.SHORT, 0)
                 }
             }
             val data = ByteArray(buf.byteBuf.readableBytes())

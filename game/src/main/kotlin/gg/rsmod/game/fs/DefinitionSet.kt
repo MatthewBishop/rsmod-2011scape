@@ -1,5 +1,6 @@
 package gg.rsmod.game.fs
 
+import com.displee.cache.CacheLibrary
 import gg.rsmod.game.fs.def.*
 import gg.rsmod.game.model.Direction
 import gg.rsmod.game.model.Tile
@@ -13,12 +14,9 @@ import io.netty.buffer.Unpooled
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import mu.KLogging
-import net.runelite.cache.ConfigType
 import net.runelite.cache.IndexType
 import net.runelite.cache.definitions.loaders.LocationsLoader
 import net.runelite.cache.definitions.loaders.MapLoader
-import net.runelite.cache.fs.Store
-import java.io.FileNotFoundException
 import java.io.IOException
 
 /**
@@ -36,36 +34,38 @@ class DefinitionSet {
 
     private var xteaService: XteaKeyService? = null
 
-    fun loadAll(store: Store) {
-        /*
-         * Load [AnimDef]s.
-         */
-        load(store, AnimDef::class.java)
-        logger.info("Loaded ${getCount(AnimDef::class.java)} animation definitions.")
+    fun loadAll(store: CacheLibrary) {
+
 
         /*
-         * Load [VarpDef]s.
-         */
-        load(store, VarpDef::class.java)
-        logger.info("Loaded ${getCount(VarpDef::class.java)} varp definitions.")
-
-        /*
-         * Load [VarbitDef]s.
-         */
+       * Load [VarpDefs]s.
+       */
         load(store, VarbitDef::class.java)
         logger.info("Loaded ${getCount(VarbitDef::class.java)} varbit definitions.")
 
         /*
-         * Load [EnumDef]s.
-         */
+        * Load [VarpDefs]s.
+        */
+        load(store, VarpDef::class.java)
+        logger.info("Loaded ${getCount(VarpDef::class.java)} varp definitions.")
+
+        /*
+        * Load [EnumDefs]s.
+        */
         load(store, EnumDef::class.java)
         logger.info("Loaded ${getCount(EnumDef::class.java)} enum definitions.")
 
         /*
-         * Load [NpcDef]s.
-         */
-        load(store, NpcDef::class.java)
-        logger.info("Loaded ${getCount(NpcDef::class.java)} npc definitions.")
+        * Load [StructDefs]s.
+        */
+        load(store, StructDef::class.java)
+        logger.info("Loaded ${getCount(StructDef::class.java)} struct definitions.")
+
+        /*
+       * Load [AnimDefs]s.
+       */
+        load(store, AnimDef::class.java)
+        logger.info("Loaded ${getCount(AnimDef::class.java)} animation definitions.")
 
         /*
          * Load [ItemDef]s.
@@ -78,6 +78,12 @@ class DefinitionSet {
          */
         load(store, ObjectDef::class.java)
         logger.info("Loaded ${getCount(ObjectDef::class.java)} object definitions.")
+
+        /*
+        * Load [NpcDef]s.
+        */
+        load(store, NpcDef::class.java)
+        logger.info("Loaded ${getCount(NpcDef::class.java)} npc definitions.")
     }
 
     fun loadRegions(world: World, chunks: ChunkSet, regions: IntArray) {
@@ -94,42 +100,57 @@ class DefinitionSet {
         logger.info { "Loaded $loaded regions in ${System.currentTimeMillis() - start}ms" }
     }
 
-    fun <T : Definition> load(store: Store, type: Class<out T>) {
-        val configType: ConfigType = when (type) {
-            VarpDef::class.java -> ConfigType.VARPLAYER
-            VarbitDef::class.java -> ConfigType.VARBIT
-            EnumDef::class.java -> ConfigType.ENUM
-            NpcDef::class.java -> ConfigType.NPC
-            ObjectDef::class.java -> ConfigType.OBJECT
-            ItemDef::class.java -> ConfigType.ITEM
-            AnimDef::class.java -> ConfigType.SEQUENCE
+    fun <T : Definition> load(store: CacheLibrary, type: Class<out T>) {
+        val archiveType: ArchiveType = when (type) {
+            ItemDef::class.java -> ArchiveType.ITEM
+            StructDef::class.java -> ArchiveType.STRUCT
+            EnumDef::class.java -> ArchiveType.ENUM
+            VarpDef::class.java -> ArchiveType.VARP
+            VarbitDef::class.java -> ArchiveType.VARBIT
+            ObjectDef::class.java -> ArchiveType.OBJECT
+            AnimDef::class.java -> ArchiveType.ANIM
+            NpcDef::class.java -> ArchiveType.NPC
             else -> throw IllegalArgumentException("Unhandled class type ${type::class.java}.")
         }
-        val configs = store.getIndex(IndexType.CONFIGS) ?: throw FileNotFoundException("Cache was not found.")
-        val archive = configs.getArchive(configType.id)!!
-        val files = archive.getFiles(store.storage.loadArchive(archive)!!).files
 
-        val definitions = Int2ObjectOpenHashMap<T?>(files.size + 1)
-        for (i in 0 until files.size) {
-            val def = createDefinition(type, files[i].fileId, files[i].contents)
-            definitions[files[i].fileId] = def
+        if(archiveType.modernArchive) {
+            val length = getIndexSize(store, archiveType.id)
+            val definitions = Int2ObjectOpenHashMap<T?>(length + 1)
+            for (i in 0 until length) {
+                val data = store.data(archiveType.id, i ushr 8, i and 0xFF) ?: continue
+                val def = createDefinition(type, i, data)
+                definitions[i] = def
+            }
+            defs[type] = definitions
+        } else {
+            val configs = store.index(archiveType.id)
+            val archive = configs.archive(archiveType.subId)
+            val files = archive!!.files
+
+            val definitions = Int2ObjectOpenHashMap<T?>(files.size + 1)
+            for (i in 0 until files.size) {
+                val file = files[i] ?: continue
+                val data = file.data ?: continue
+                val def = createDefinition(type, file.id, data)
+                definitions[file.id] = def
+            }
+            defs[type] = definitions
         }
-        defs[type] = definitions
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : Definition> createDefinition(type: Class<out T>, id: Int, data: ByteArray): T {
+    private fun <T : Definition> createDefinition(type: Class<out T>, id: Int, data: ByteArray): T {
         val def: Definition = when (type) {
+            ItemDef::class.java -> ItemDef(id)
+            StructDef::class.java -> StructDef(id)
+            EnumDef::class.java -> EnumDef(id)
             VarpDef::class.java -> VarpDef(id)
             VarbitDef::class.java -> VarbitDef(id)
-            EnumDef::class.java -> EnumDef(id)
-            NpcDef::class.java -> NpcDef(id)
             ObjectDef::class.java -> ObjectDef(id)
-            ItemDef::class.java -> ItemDef(id)
             AnimDef::class.java -> AnimDef(id)
+            NpcDef::class.java -> NpcDef(id)
             else -> throw IllegalArgumentException("Unhandled class type ${type::class.java}.")
         }
-
         val buf = Unpooled.wrappedBuffer(data)
         def.decode(buf)
         buf.release()
@@ -156,19 +177,10 @@ class DefinitionSet {
             xteaService = world.getService(XteaKeyService::class.java)
         }
 
-        val regionIndex = world.filestore.getIndex(IndexType.MAPS)
-
         val x = id shr 8
         val z = id and 0xFF
 
-        val mapArchive = regionIndex.findArchiveByName("m${x}_$z") ?: return false
-        val landArchive = regionIndex.findArchiveByName("l${x}_$z") ?: return false
-
-        val mapData = mapArchive.decompress(world.filestore.storage.loadArchive(mapArchive))
-        if (mapData == null) {
-            logger.error { "Map data null for region $id ($x, $z)" }
-            return false
-        }
+        val mapData = world.filestore.data(IndexType.MAPS.number, "m${x}_$z") ?: return false
         val mapDefinition = MapLoader().load(x, z, mapData)
 
         val cacheRegion = net.runelite.cache.region.Region(id)
@@ -223,7 +235,7 @@ class DefinitionSet {
 
         val keys = xteaService?.get(id) ?: XteaKeyService.EMPTY_KEYS
         try {
-            val landData = landArchive.decompress(world.filestore.storage.loadArchive(landArchive), keys)
+            val landData = world.filestore.data(IndexType.MAPS.number, "l${x}_$z", keys) ?: return false
             val locDef = LocationsLoader().load(x, z, landData)
             cacheRegion.loadLocations(locDef)
 
@@ -240,6 +252,14 @@ class DefinitionSet {
             logger.error("Could not decrypt map region {}.", id)
             return false
         }
+    }
+
+    /**
+     * Calculate the size of any given index in the cache
+     */
+    internal fun getIndexSize(store: CacheLibrary, index: Int) : Int {
+        val lastArchiveId = store.index(index).archives().size - 1
+        return lastArchiveId * 256 + store.index(index).archive(lastArchiveId)!!.files.size
     }
 
     companion object : KLogging()

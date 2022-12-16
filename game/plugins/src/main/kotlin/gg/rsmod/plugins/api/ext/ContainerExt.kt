@@ -5,18 +5,17 @@ import gg.rsmod.game.model.World
 import gg.rsmod.game.model.container.ItemContainer
 import gg.rsmod.game.model.container.ItemTransaction
 import gg.rsmod.game.model.item.Item
-import gg.rsmod.plugins.service.marketvalue.ItemMarketValueService
 
 fun ItemContainer.getNetworth(world: World): Long {
-    val service = world.getService(ItemMarketValueService::class.java)
+    /*val service = world.getService(ItemMarketValueService::class.java)
     var networth = 0L
     rawItems.forEach { item ->
         if (item != null) {
             val cost = service?.get(item.id) ?: world.definitions.getNullable(ItemDef::class.java, item.id)?.cost ?: 0
             networth += cost * item.amount
         }
-    }
-    return networth
+    }*/
+    return 0L
 }
 
 /**

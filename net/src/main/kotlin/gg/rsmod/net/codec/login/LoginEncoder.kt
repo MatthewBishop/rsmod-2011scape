@@ -3,6 +3,7 @@ package gg.rsmod.net.codec.login
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.MessageToByteEncoder
+import java.nio.ByteBuffer
 
 /**
  * @author Tom <rspsmods@gmail.com>
@@ -10,13 +11,19 @@ import io.netty.handler.codec.MessageToByteEncoder
 class LoginEncoder : MessageToByteEncoder<LoginResponse>() {
 
     override fun encode(ctx: ChannelHandlerContext, msg: LoginResponse, out: ByteBuf) {
-        out.writeByte(2)
-        out.writeByte(13)
-        out.writeByte(0)
-        out.writeInt(0)
+        out.writeByte(msg.result.id)
+        out.writeByte(14)
         out.writeByte(msg.privilege)
-        out.writeBoolean(true) // members
+        out.writeByte(0)
+        out.writeByte(0)
+        out.writeByte(0)
+        out.writeByte(1)
+        out.writeByte(0)
         out.writeShort(msg.index)
-        out.writeBoolean(true) // members
+        out.writeByte(1)
+        out.writeMedium(0)
+        out.writeByte(1)
+        out.writeBytes("".toByteArray(Charsets.UTF_8))
+        out.writeByte(0)
     }
 }

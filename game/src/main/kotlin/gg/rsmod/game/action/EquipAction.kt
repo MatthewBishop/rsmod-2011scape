@@ -18,7 +18,7 @@ object EquipAction {
     //      the messages
     //  3) Load skill names via external configs which would be used throughout
     //      the game and plugins module
-    private val SKILL_NAMES = arrayOf(
+    val SKILL_NAMES = arrayOf(
             "attack", "defence", "strength", "hitpoints", "ranged", "prayer",
             "magic", "cooking", "woodcutting", "fletching", "fishing", "firemaking",
             "crafting", "Smithing", "mining", "herblore", "agility", "thieving",
