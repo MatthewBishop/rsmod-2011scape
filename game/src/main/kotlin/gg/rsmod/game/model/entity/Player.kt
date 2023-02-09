@@ -218,7 +218,7 @@ open class Player(world: World) : Pawn(world) {
 
     var gameMode = 0
 
-    var xpRate = 1.0
+    var xpRate = 5.0
 
     var lifepoints = 100
 
